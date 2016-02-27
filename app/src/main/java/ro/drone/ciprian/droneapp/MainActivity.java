@@ -1,7 +1,6 @@
 package ro.drone.ciprian.droneapp;
 
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.SeekBar;
