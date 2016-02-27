@@ -28,7 +28,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
         new Thread(new Runnable() {
             public void run() {
                 while (sendStuff) {
@@ -45,13 +44,9 @@ public class MainActivity extends AppCompatActivity {
                     } catch (Exception ex) {
                         Log.e("err",ex.getMessage());
                     }
-
                 }
             }
         }).start();
-
-
-
 
         throttle = (VerticalSeekBar) findViewById(R.id.throttleVerticalSeekBar);
         throttle.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -125,8 +120,6 @@ public class MainActivity extends AppCompatActivity {
                 seekBar.setProgress(seekBar.getMax() / 2);
             }
         });
-
-
     }
 
 }
