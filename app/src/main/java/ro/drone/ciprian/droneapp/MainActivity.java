@@ -28,7 +28,6 @@ public class MainActivity extends AppCompatActivity {
 
         new Thread(new Runnable() {
             public void run() {
-
                 try {
                     DatagramSocket s = new DatagramSocket();
                     InetAddress local = InetAddress.getByName("192.168.1.143");
@@ -38,13 +37,12 @@ public class MainActivity extends AppCompatActivity {
                         byte[] message = messageStr.getBytes();
                         DatagramPacket p = new DatagramPacket(message, messageStr.length(), local, SERVER_PORT);
                         s.send(p);
-                        //SystemClock.sleep(0);
+                        Thread.sleep(5);
                     }
 
                 } catch (Exception ex) {
                     Log.e("err", ex.getMessage());
                 }
-
             }
         }).start();
 
