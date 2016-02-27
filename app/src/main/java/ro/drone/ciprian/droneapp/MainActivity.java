@@ -1,8 +1,6 @@
 package ro.drone.ciprian.droneapp;
 
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
