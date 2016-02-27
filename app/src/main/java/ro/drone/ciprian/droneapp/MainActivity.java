@@ -21,6 +21,7 @@ public class MainActivity extends AppCompatActivity {
 
     int SERVER_PORT = 12345;
     String messageStr;
+    boolean sendStuff = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
 
         new Thread(new Runnable() {
             public void run() {
-                while (true) {
+                while (sendStuff) {
                     try {
                         DatagramSocket s = new DatagramSocket();
                         InetAddress local = InetAddress.getByName("192.168.1.143");
