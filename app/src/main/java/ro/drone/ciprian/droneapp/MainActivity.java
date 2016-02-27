@@ -42,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
                         SystemClock.sleep(30);
 
                     } catch (Exception ex) {
-
+                        Log.e("err",ex.getMessage());
                     }
 
                 }
