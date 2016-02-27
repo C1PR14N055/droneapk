@@ -28,21 +28,23 @@ public class MainActivity extends AppCompatActivity {
 
         new Thread(new Runnable() {
             public void run() {
-                while (sendStuff) {
-                    try {
-                        DatagramSocket s = new DatagramSocket();
-                        InetAddress local = InetAddress.getByName("192.168.1.143");
+
+                try {
+                    DatagramSocket s = new DatagramSocket();
+                    InetAddress local = InetAddress.getByName("192.168.1.143");
+                    while (sendStuff) {
                         messageStr = String.valueOf((roll.getProgress() + 1000) + "" + (pitch.getProgress() + 1000) +
                                 (yaw.getProgress() + 1000) + (throttle.getProgress() + 1000));
                         byte[] message = messageStr.getBytes();
                         DatagramPacket p = new DatagramPacket(message, messageStr.length(), local, SERVER_PORT);
                         s.send(p);
-                        SystemClock.sleep(30);
-
-                    } catch (Exception ex) {
-                        Log.e("err",ex.getMessage());
+                        //SystemClock.sleep(0);
                     }
+
+                } catch (Exception ex) {
+                    Log.e("err", ex.getMessage());
                 }
+
             }
         }).start();
 
