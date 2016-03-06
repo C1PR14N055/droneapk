@@ -1,12 +1,10 @@
 package ro.drone.ciprian.droneapp;
 
-import android.content.Context;
 import android.util.Log;
 import android.view.InputDevice;
 import android.view.InputEvent;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
-import android.view.View;
 
 import java.util.ArrayList;
 
@@ -14,6 +12,11 @@ import java.util.ArrayList;
  * Created by ciprian on 3/6/16.
  */
 public class Controller {
+
+    public static int roll = 1500;
+    public static int pitch = 1500;
+    public static int yaw = 1500;
+    public static int throttle = 1000;
 
     final static int DPAD_UP       = 0;
     final static int DPAD_LEFT     = 1;
@@ -74,11 +77,7 @@ public class Controller {
 
     public static boolean isDpadDevice(InputEvent event) {
         // Check that input comes from a device with directional pads.
-        if ((event.getSource() & InputDevice.SOURCE_DPAD) != InputDevice.SOURCE_DPAD) {
-            return true;
-        } else {
-            return false;
-        }
+        return (event.getSource() & InputDevice.SOURCE_DPAD) != InputDevice.SOURCE_DPAD;
     }
 
     private static float getCenteredAxis(MotionEvent event,
@@ -141,26 +140,36 @@ public class Controller {
 
         // Right trigger
         float rt = getCenteredAxis(event, mInputDevice,
-                MotionEvent.AXIS_RTRIGGER, historyPos);
+                MotionEvent.AXIS_RY, historyPos);
         if (rt == 0) { // x axis
             rt = getCenteredAxis(event, mInputDevice,
-                    MotionEvent.AXIS_RTRIGGER, historyPos);
+                    MotionEvent.AXIS_RY, historyPos);
         }
 
         // Left trigger
         float lt = getCenteredAxis(event, mInputDevice,
-                MotionEvent.AXIS_LTRIGGER, historyPos);
+                MotionEvent.AXIS_RX, historyPos);
         if (lt == 0) { // x axis
             lt = getCenteredAxis(event, mInputDevice,
-                    MotionEvent.AXIS_LTRIGGER, historyPos);
+                    MotionEvent.AXIS_RX, historyPos);
         }
 
+        /*
         if (x != 0) Log.d("X", String.valueOf(x));
         if (y != 0) Log.d("Y", String.valueOf(y));
         if (z != 0)  Log.d("Z", String.valueOf(z));
         if (rz != 0) Log.d("RZ", String.valueOf(rz));
         if (rt != 0) Log.d("RT", String.valueOf(rt));
         if (lt != 0) Log.d("LT", String.valueOf(lt));
+        */
+
+        roll = convertToRCdata(z, false);
+        pitch = convertToRCdata(rz, true);
+        yaw = convertToRCdata(x, false);
+        throttle = convertToRCdata(rt, false);
+
+        Log.d("RPYT", String.valueOf(roll) + String.valueOf(pitch) +
+                String.valueOf(yaw) + String.valueOf(throttle));
     }
 
     public static ArrayList getGameControllerIds() {
@@ -180,6 +189,11 @@ public class Controller {
             }
         }
         return gameControllerDeviceIds;
+    }
+
+    private static int convertToRCdata(float x, boolean invert) {
+        if (invert) x *= -1;
+        return Math.round(x * 500 + 1500); // Thanks buby
     }
 
 }

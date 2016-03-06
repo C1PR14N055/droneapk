@@ -27,6 +27,8 @@ public class MainActivity extends AppCompatActivity {
 
     ArrayList gameControllerDevicesIds;
 
+    boolean useCotroller = true;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,8 +44,13 @@ public class MainActivity extends AppCompatActivity {
                     DatagramSocket s = new DatagramSocket();
                     InetAddress local = InetAddress.getByName("192.168.1.87");
                     while (sendStuff) {
-                        messageStr = String.valueOf((roll.getProgress() + 1000) + "" + (pitch.getProgress() + 1000) +
-                                (yaw.getProgress() + 1000) + (throttle.getProgress() + 1000));
+                        if (useCotroller) {
+                            messageStr = String.valueOf(Controller.roll + "" + Controller.pitch +
+                                        Controller.yaw + Controller.throttle);
+                        } else {
+                            messageStr = String.valueOf((roll.getProgress() + 1000) + "" + (pitch.getProgress() + 1000) +
+                                    (yaw.getProgress() + 1000) + (throttle.getProgress() + 1000));
+                        }
                         byte[] message = messageStr.getBytes();
                         DatagramPacket p = new DatagramPacket(message, messageStr.length(), local, SERVER_PORT);
                         s.send(p);
