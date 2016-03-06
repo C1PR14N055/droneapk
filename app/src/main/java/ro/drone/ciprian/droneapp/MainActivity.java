@@ -5,6 +5,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.WindowManager;
 import android.widget.SeekBar;
 
@@ -129,13 +130,39 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+//    @Override
+//    public boolean dispatchKeyEvent(KeyEvent event) {
+//        if ((event.getSource() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD) {
+//            Log.d("INPUT KEYCODE", String.valueOf(event.getKeyCode()) + " FROM: " + event.getDeviceId());
+//            return true; // if handled
+//        }
+//        return super.dispatchKeyEvent(event);
+//    }
+
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if ((event.getSource() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD) {
-            Log.d("INPUT KEYCODE", String.valueOf(keyCode) + " FROM: " + event.getDeviceId());
-            return true; // if handled
+    public boolean dispatchGenericMotionEvent(MotionEvent event) {
+        // Check that the event came from a game controller
+        //if (event.getAxisValue(MotionEvent.AXIS_RX) > -1) Log.d("Motion", event.getAxisValue(MotionEvent.AXIS_RX) + "");
+        //if (event.getAxisValue(MotionEvent.AXIS_RY) > -1) Log.d("Motion", event.getAxisValue(MotionEvent.AXIS_RY) + "");
+        if ((event.getSource() & InputDevice.SOURCE_JOYSTICK) ==
+                InputDevice.SOURCE_JOYSTICK &&
+                event.getAction() == MotionEvent.ACTION_MOVE) {
+
+            // Process all historical movement samples in the batch
+            final int historySize = event.getHistorySize();
+
+            // Process the movements starting from the
+            // earliest historical position in the batch
+            for (int i = 0; i < historySize; i++) {
+                // Process the event at historical position i
+                Controller.processJoystickInput(event, i);
+            }
+
+            // Process the current movement sample in the batch (position -1)
+            Controller.processJoystickInput(event, -1);
+            return true;
         }
-        return super.onKeyDown(keyCode, event);
+        return super.onGenericMotionEvent(event);
     }
 
 }
