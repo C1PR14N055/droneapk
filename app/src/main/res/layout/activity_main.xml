@@ -86,14 +86,18 @@
 
     </LinearLayout>
 
-    <EditText
+    <ProgressBar
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/signal"
         android:layout_alignTop="@+id/linearLayout3"
-        android:layout_toRightOf="@+id/linearLayout3"
-        android:layout_toLeftOf="@+id/linearLayout"
-        android:layout_toStartOf="@+id/linearLayout" />
+        android:layout_alignLeft="@+id/linearLayout3"
+        android:layout_alignStart="@+id/linearLayout3"
+        android:layout_alignRight="@+id/linearLayout"
+        android:layout_alignEnd="@+id/linearLayout"
+        android:progress="100"
+        android:max="99" />
 
 
 </RelativeLayout>

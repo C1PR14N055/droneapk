@@ -1,22 +1,24 @@
 package ro.drone.ciprian.droneapp;
 
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Vibrator;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.InputDevice;
-import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.ArrayList;
-import java.util.Timer;
-import java.util.TimerTask;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -34,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     boolean useCotroller = true;
 
     Device device;
-    EditText signal;
+    ProgressBar signal;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,16 +48,37 @@ public class MainActivity extends AppCompatActivity {
         gameControllerDevicesIds = Controller.getGameControllerIds();
 
         device = new Device(MainActivity.this);
-        signal = (EditText) findViewById(R.id.signal);
+        signal = (ProgressBar) findViewById(R.id.signal);
         final Handler mHandler = new Handler();
+        final Vibrator v = (Vibrator) this.getSystemService(this.VIBRATOR_SERVICE);
+        // Vibrate for 500 milliseconds
 
         Runnable runnable = new Runnable() {
+            int deviceSignal = 0;
             @Override
             public void run() {
-                signal.setText(String.valueOf(device.getWifiSignalLevel()));
+                deviceSignal = device.getWifiSignalLevel();
+                if (deviceSignal >= 75) {
+                    signal.getProgressDrawable().setColorFilter(
+                            Color.rgb(46, 204, 113), android.graphics.PorterDuff.Mode.SRC_IN);
+                }
+                else if (deviceSignal >= 50) {
+                    signal.getProgressDrawable().setColorFilter(
+                            Color.rgb(241, 196, 15), android.graphics.PorterDuff.Mode.SRC_IN);
+                }
+                else if (deviceSignal >= 25) {
+                    signal.getProgressDrawable().setColorFilter(
+                            Color.rgb(230, 126, 34), android.graphics.PorterDuff.Mode.SRC_IN);
+                }
+                else if (deviceSignal >= 0) {
+                    signal.getProgressDrawable().setColorFilter(
+                            Color.rgb(231, 76, 60), android.graphics.PorterDuff.Mode.SRC_IN);
+                    v.vibrate(100);
+                }
+
+                signal.setProgress(device.getWifiSignalLevel());
                 Log.d("SIGNAL:", String.valueOf(device.getWifiSignalLevel()));
                 mHandler.postDelayed(this, 1000);
-                //mHandler.postDelayed(mStatusChecker, mInterval);
             }
         };
         mHandler.post(runnable);
@@ -194,10 +217,6 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         return super.onGenericMotionEvent(event);
-    }
-
-    void updateSignal() {
-
     }
 
 }
