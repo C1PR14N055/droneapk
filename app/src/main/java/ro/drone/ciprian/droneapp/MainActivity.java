@@ -1,18 +1,22 @@
 package ro.drone.ciprian.droneapp;
 
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.SeekBar;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -29,6 +33,9 @@ public class MainActivity extends AppCompatActivity {
 
     boolean useCotroller = true;
 
+    Device device;
+    EditText signal;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,11 +45,28 @@ public class MainActivity extends AppCompatActivity {
 
         gameControllerDevicesIds = Controller.getGameControllerIds();
 
+        device = new Device(MainActivity.this);
+        signal = (EditText) findViewById(R.id.signal);
+        final Handler mHandler = new Handler();
+
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                signal.setText(String.valueOf(device.getWifiSignalLevel()));
+                Log.d("SIGNAL:", String.valueOf(device.getWifiSignalLevel()));
+                mHandler.postDelayed(this, 1000);
+                //mHandler.postDelayed(mStatusChecker, mInterval);
+            }
+        };
+        mHandler.post(runnable);
+        runnable.run();
+
         new Thread(new Runnable() {
             public void run() {
                 try {
                     DatagramSocket s = new DatagramSocket();
-                    InetAddress local = InetAddress.getByName("192.168.1.87");
+                    // Raspberry Pi Hotspot Address
+                    InetAddress local = InetAddress.getByName("192.168.1.1");
                     while (sendStuff) {
                         if (useCotroller) {
                             messageStr = String.valueOf(Controller.roll + "" + Controller.pitch +
@@ -170,6 +194,10 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         return super.onGenericMotionEvent(event);
+    }
+
+    void updateSignal() {
+
     }
 
 }
