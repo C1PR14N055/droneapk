@@ -1,6 +1,5 @@
 package ro.drone.ciprian.droneapp;
 
-import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -10,7 +9,6 @@ import android.util.Log;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 import android.view.WindowManager;
-import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 
@@ -33,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
 
     ArrayList gameControllerDevicesIds;
 
-    boolean useCotroller = true;
+    boolean useController = true;
 
     Device device;
     ProgressBar signal;
@@ -46,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         gameControllerDevicesIds = Controller.getGameControllerIds();
+        Log.d("Controller IDs:", String.valueOf(gameControllerDevicesIds));
 
         device = new Device(MainActivity.this);
         signal = (ProgressBar) findViewById(R.id.signal);
@@ -77,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 signal.setProgress(device.getWifiSignalLevel());
-                Log.d("SIGNAL:", String.valueOf(device.getWifiSignalLevel()));
+                //Log.d("SIGNAL:", String.valueOf(device.getWifiSignalLevel()));
                 mHandler.postDelayed(this, 1000);
             }
         };
@@ -90,16 +89,19 @@ public class MainActivity extends AppCompatActivity {
                     DatagramSocket s = new DatagramSocket();
                     // Raspberry Pi Hotspot Address
                     InetAddress local = InetAddress.getByName("192.168.1.1");
+                    byte[] message;
+                    DatagramPacket p;
                     while (sendStuff) {
-                        if (useCotroller) {
+                        if (useController) {
                             messageStr = String.valueOf(Controller.roll + "" + Controller.pitch +
                                         Controller.yaw + Controller.throttle);
                         } else {
                             messageStr = String.valueOf((roll.getProgress() + 1000) + "" + (pitch.getProgress() + 1000) +
                                     (yaw.getProgress() + 1000) + (throttle.getProgress() + 1000));
                         }
-                        byte[] message = messageStr.getBytes();
-                        DatagramPacket p = new DatagramPacket(message, messageStr.length(), local, SERVER_PORT);
+                        //Log.d("SENT:", messageStr);
+                        message = messageStr.getBytes();
+                        p = new DatagramPacket(message, messageStr.length(), local, SERVER_PORT);
                         s.send(p);
                         Thread.sleep(10);
                     }
@@ -195,6 +197,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean dispatchGenericMotionEvent(MotionEvent event) {
+        Log.d("Motion event:", event.toString());
         // Check that the event came from a game controller
         //if (event.getAxisValue(MotionEvent.AXIS_RX) > -1) Log.d("Motion", event.getAxisValue(MotionEvent.AXIS_RX) + "");
         //if (event.getAxisValue(MotionEvent.AXIS_RY) > -1) Log.d("Motion", event.getAxisValue(MotionEvent.AXIS_RY) + "");

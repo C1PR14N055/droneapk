@@ -176,6 +176,7 @@ public class Controller {
         ArrayList gameControllerDeviceIds = new ArrayList();
         int[] deviceIds = InputDevice.getDeviceIds();
         for (int deviceId : deviceIds) {
+            Log.d("DEVICE IDS:", String.valueOf(deviceId));
             InputDevice dev = InputDevice.getDevice(deviceId);
             int sources = dev.getSources();
 
