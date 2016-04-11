@@ -10,16 +10,24 @@ public class Device {
 
     private static WifiManager wifiManager = null;
     private static final int WIFI_SIGNAL_LEVELS = 100;
+    private static Device device = null;
 
-    public Device(Context context) {
+    private Device(Context context) {
         wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
     }
 
-    public static boolean isWifiOn(Context context){
+    public static Device getInstance(Context context){
+        if (device == null) {
+            device = new Device(context);
+        }
+        return device;
+    }
+
+    public boolean isWifiOn(){
         return wifiManager.isWifiEnabled();
     }
 
-    public static String getWifiSSID(Context context) {
+    public String getWifiSSID() {
         return wifiManager.getConnectionInfo().getSSID();
     }
 

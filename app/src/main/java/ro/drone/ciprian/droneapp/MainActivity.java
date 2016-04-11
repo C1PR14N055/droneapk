@@ -1,5 +1,7 @@
 package ro.drone.ciprian.droneapp;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -7,10 +9,16 @@ import android.os.Vibrator;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.InputDevice;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
+import android.widget.Toast;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -43,10 +51,43 @@ public class MainActivity extends AppCompatActivity {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main);
 
+        final Button menuBtn = (Button) findViewById(R.id.menuBtn);
+        menuBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                PopupMenu popup = new PopupMenu(MainActivity.this, menuBtn);
+                popup.getMenuInflater().inflate(R.menu.menu, popup.getMenu());
+
+                //registering popup with OnMenuItemClickListener
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    public boolean onMenuItemClick(final MenuItem item) {
+                        new AlertDialog.Builder(MainActivity.this)
+                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .setTitle("Are you sure?")
+                            .setMessage("Are you sure you want to click that? :s")
+                            .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    Toast.makeText(
+                                        MainActivity.this,
+                                        "You Clicked : " + item.getItemId(),
+                                        Toast.LENGTH_SHORT
+                                    ).show();
+                                }
+                            })
+                            .setNegativeButton("No", null)
+                            .show();
+                        return true;
+                    }
+                });
+                popup.show(); //showing popup menu
+            }
+        });
+
         gameControllerDevicesIds = Controller.getGameControllerIds();
         Log.d("Controller IDs:", String.valueOf(gameControllerDevicesIds));
 
-        device = new Device(MainActivity.this);
+        device = Device.getInstance(this);
         signal = (ProgressBar) findViewById(R.id.signal);
         final Handler mHandler = new Handler();
         final Vibrator v = (Vibrator) this.getSystemService(this.VIBRATOR_SERVICE);
@@ -56,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
             int deviceSignal = 0;
             @Override
             public void run() {
+                if (!device.isWifiOn()) return;
                 deviceSignal = device.getWifiSignalLevel();
                 if (deviceSignal >= 75) {
                     signal.getProgressDrawable().setColorFilter(
@@ -76,11 +118,18 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 signal.setProgress(device.getWifiSignalLevel());
-                //Log.d("SIGNAL:", String.valueOf(device.getWifiSignalLevel()));
-                mHandler.postDelayed(this, 1000);
+                Log.d("SIGNAL:", String.valueOf(device.getWifiSignalLevel()));
+                mHandler.postDelayed(this, 2000);
             }
         };
-        mHandler.post(runnable);
+        //mHandler.post(runnable);
+        if (!device.isWifiOn()) {
+            Toast toast = Toast.makeText(this, "Wifi is OFF!!", Toast.LENGTH_SHORT);
+            toast.show();
+        } else if (!device.getWifiSSID().equals("XDRONE")) {
+            Toast toast = Toast.makeText(this, "Please connect to XDRONE wifi!!", Toast.LENGTH_SHORT);
+            toast.show();
+        }
         runnable.run();
 
         new Thread(new Runnable() {
@@ -184,6 +233,14 @@ public class MainActivity extends AppCompatActivity {
                 seekBar.setProgress(seekBar.getMax() / 2);
             }
         });
+    }
+
+
+    public void showPopup(View v) {
+        PopupMenu popup = new PopupMenu(this, v);
+        MenuInflater inflater = popup.getMenuInflater();
+        inflater.inflate(R.menu.menu, popup.getMenu());
+        popup.show();
     }
 
 //    @Override
