@@ -17,3 +17,9 @@
 - [ ] Change controller light bar color depending on battery / wifi status
 - [ ] Remote actions system, ...1010
 - [ ] On arm at idle throttle should be at level 1000
+- [ ] Experiment with TCP vs UDP
+- [ ] Controller disconnected redundancy
+- [ ] Teacher / student mode
+- [ ] Preview, two people mode, pilot and camera man
+- [ ] Support for ps3 / xbox controllers
+- [ ] Telemetry
