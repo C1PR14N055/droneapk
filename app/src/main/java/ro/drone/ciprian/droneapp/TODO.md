@@ -23,3 +23,5 @@
 - [ ] Preview, two people mode, pilot and camera man
 - [ ] Support for ps3 / xbox controllers
 - [ ] Telemetry
+- [ ] Overclock WLAN interface for better range, remote option
+- [ ] Terminal from device to drone
