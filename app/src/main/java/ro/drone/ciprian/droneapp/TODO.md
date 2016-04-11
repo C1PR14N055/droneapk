@@ -5,7 +5,7 @@
 - [ ] UI, lots of UI
 - [ ] Low battery checks (tablet, controller, drone)
 - [ ] Estimated time of flight left
-- [ ] Warning sounds
+- [ ] Warning sounds / voice
 - [ ] Crash / signal lost control
 - [ ] Record video on USB option
 - [ ] Auto land system
@@ -14,3 +14,6 @@
 - [ ] Data sent back to device, ALT, HEADING, ORIENTATION etc
 - [ ] Password arm?
 - [ ] On screen controls
+- [ ] Change controller light bar color depending on battery / wifi status
+- [ ] Remote actions system, ...1010
+- [ ] On arm at idle throttle should be at level 1000
