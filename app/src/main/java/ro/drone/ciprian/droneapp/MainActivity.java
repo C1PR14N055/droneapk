@@ -23,8 +23,6 @@ import android.widget.Toast;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.ArrayList;
-
 
 public class MainActivity extends AppCompatActivity {
 
@@ -33,11 +31,17 @@ public class MainActivity extends AppCompatActivity {
     SeekBar roll;
     SeekBar yaw;
 
-    int SERVER_PORT = 12345;
+    final String localPiIP = "192.168.1.1";
+    final int SERVER_PORT = 12345;
     String messageStr;
-    boolean sendStuff = true;
+    boolean sendData = true;
 
-    ArrayList gameControllerDevicesIds;
+    final int CMD_ARM = 0;
+    final int CMD_FLY = 1;
+    final int CMD_DISARM = 2;
+    final int CMD_SHUTDOWN = 3;
+    int cmd = 1; // command to send
+    long lastCmdTimestamp = 0;
 
     boolean useController = true;
 
@@ -49,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
 
         final Button menuBtn = (Button) findViewById(R.id.menuBtn);
@@ -63,16 +68,28 @@ public class MainActivity extends AppCompatActivity {
                     public boolean onMenuItemClick(final MenuItem item) {
                         new AlertDialog.Builder(MainActivity.this)
                             .setIcon(android.R.drawable.ic_dialog_alert)
-                            .setTitle("Are you sure?")
-                            .setMessage("Are you sure you want to click that? :s")
+                            .setTitle("100%?")
+                            .setMessage("Are you sure?")
                             .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
-                                    Toast.makeText(
-                                        MainActivity.this,
-                                        "You Clicked : " + item.getItemId(),
-                                        Toast.LENGTH_SHORT
-                                    ).show();
+                                    switch (item.getItemId()) {
+                                        case R.id.arm: {
+                                            cmd = CMD_ARM;
+                                            Toast.makeText(MainActivity.this, "Board Armed", Toast.LENGTH_SHORT).show();
+                                            break;
+                                        }
+                                        case R.id.disarm: {
+                                            cmd = CMD_DISARM;
+                                            Toast.makeText(MainActivity.this, "Board Disarmed", Toast.LENGTH_SHORT).show();
+                                            break;
+                                        }
+                                        case R.id.shutdown: {
+                                            cmd = CMD_SHUTDOWN;
+                                            Toast.makeText(MainActivity.this, "Shutting Down Pi", Toast.LENGTH_SHORT).show();
+                                            break;
+                                        }
+                                    }
                                 }
                             })
                             .setNegativeButton("No", null)
@@ -84,8 +101,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        gameControllerDevicesIds = Controller.getGameControllerIds();
-        Log.d("Controller IDs:", String.valueOf(gameControllerDevicesIds));
+        //gameControllerDevicesIds = Controller.getGameControllerIds();
+        //Log.d("Controller IDs:", String.valueOf(gameControllerDevicesIds));
 
         device = Device.getInstance(this);
         signal = (ProgressBar) findViewById(R.id.signal);
@@ -97,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
             int deviceSignal = 0;
             @Override
             public void run() {
-                if (!device.isWifiOn()) return;
+                if (!device.isWifiOn() || !device.getWifiSSID().equals("XDRONE")) return;
                 deviceSignal = device.getWifiSignalLevel();
                 if (deviceSignal >= 75) {
                     signal.getProgressDrawable().setColorFilter(
@@ -132,29 +149,34 @@ public class MainActivity extends AppCompatActivity {
         }
         runnable.run();
 
+        // UDP SEND THREAD
         new Thread(new Runnable() {
             public void run() {
                 try {
                     DatagramSocket s = new DatagramSocket();
                     // Raspberry Pi Hotspot Address
-                    InetAddress local = InetAddress.getByName("192.168.1.1");
+                    InetAddress local = InetAddress.getByName(localPiIP);
                     byte[] message;
                     DatagramPacket p;
-                    while (sendStuff) {
+                    while (sendData) {
                         if (useController) {
                             messageStr = String.valueOf(Controller.roll + "" + Controller.pitch +
-                                        Controller.yaw + Controller.throttle);
+                                        Controller.yaw + Controller.throttle  + cmd);
                         } else {
                             messageStr = String.valueOf((roll.getProgress() + 1000) + "" + (pitch.getProgress() + 1000) +
-                                    (yaw.getProgress() + 1000) + (throttle.getProgress() + 1000));
+                                    (yaw.getProgress() + 1000) + (throttle.getProgress() + 1000) + cmd);
                         }
                         //Log.d("SENT:", messageStr);
                         message = messageStr.getBytes();
                         p = new DatagramPacket(message, messageStr.length(), local, SERVER_PORT);
                         s.send(p);
                         Thread.sleep(10);
+                        if (cmd != CMD_FLY && System.currentTimeMillis() - lastCmdTimestamp > 500) {
+                            cmd = CMD_FLY; // ONLY SEND COMMANDS ONCE
+                            lastCmdTimestamp = System.currentTimeMillis();
+                            Log.d("PASS", String.valueOf(cmd));
+                        }
                     }
-
                 } catch (Exception ex) {
                     Log.e("err", ex.getMessage());
                 }

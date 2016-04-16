@@ -18,6 +18,11 @@ public class Controller {
     public static int yaw = 1500;
     public static int throttle = 1000;
 
+    final static boolean USE_RAW_THROTTLE = false;
+    final static int THTROTTLE_MULTIPLIER = 20; // th increase rate
+    final static int THROTTTLE_TIMER = 0; // milliseconds of repeating increase
+    static long lastThrottleTimestamp = 0;
+
     final static int DPAD_UP       = 0;
     final static int DPAD_LEFT     = 1;
     final static int DPAD_RIGHT    = 2;
@@ -154,20 +159,36 @@ public class Controller {
                     MotionEvent.AXIS_RX, historyPos);
         }
 
-        /*
+    /*
         if (x != 0) Log.d("X", String.valueOf(x));
         if (y != 0) Log.d("Y", String.valueOf(y));
         if (z != 0)  Log.d("Z", String.valueOf(z));
         if (rz != 0) Log.d("RZ", String.valueOf(rz));
         if (rt != 0) Log.d("RT", String.valueOf(rt));
         if (lt != 0) Log.d("LT", String.valueOf(lt));
-        */
+    */
 
         roll = convertToRCdata(z, false);
         pitch = convertToRCdata(rz, true);
         yaw = convertToRCdata(x, false);
-        throttle = convertToRCdata(rt, false);
+        if (USE_RAW_THROTTLE) {
+            throttle = convertToRCdata(rt, false);
+        }
+        else {
+            // TODO ASAP This should run in a new thread, not throttle should be updated all the time
+            // TODO not only on input change
+            if (System.currentTimeMillis() - lastThrottleTimestamp >= THROTTTLE_TIMER) {
+                if (rt > 0) throttle += (rt + 1) * THTROTTLE_MULTIPLIER;
+                if (lt > 0) throttle -= (lt + 1) * THTROTTLE_MULTIPLIER;
+                if (throttle > 2000) {
+                    throttle = 2000;
+                } else if (throttle < 1000) {
+                    throttle = 1000;
+                }
+                lastThrottleTimestamp = System.currentTimeMillis();
+            }
 
+        }
         Log.d("RPYT", String.valueOf(roll) + String.valueOf(pitch) +
                 String.valueOf(yaw) + String.valueOf(throttle));
     }

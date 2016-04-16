@@ -1,5 +1,5 @@
 - [ ] Adjust speed, increase / decrease with controller triggers
-- [ ] Do not lock screen
+- [x] Do not lock screen
 - [ ] Video Streaming to Android
 - [ ] Tilt software / hardware
 - [ ] UI, lots of UI
@@ -9,13 +9,13 @@
 - [ ] Crash / signal lost control
 - [ ] Record video on USB option
 - [ ] Auto land system
-- [ ] Remote actions (arm / disarm / shutdown / auto land? )
+- [x] Remote actions (arm / disarm / shutdown / auto land? )
 - [ ] On resume / on pause apk
 - [ ] Data sent back to device, ALT, HEADING, ORIENTATION etc
 - [ ] Password arm?
 - [ ] On screen controls
 - [ ] Change controller light bar color depending on battery / wifi status
-- [ ] Remote actions system, ...1010
+- [x] Remote actions system, ...1010
 - [ ] On arm at idle throttle should be at level 1000
 - [ ] Experiment with TCP vs UDP
 - [ ] Controller disconnected redundancy
