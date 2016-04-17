@@ -19,9 +19,13 @@ public class Controller {
     public static int throttle = 1000;
 
     final static boolean USE_RAW_THROTTLE = false;
-    final static int THTROTTLE_MULTIPLIER = 20; // th increase rate
-    final static int THROTTTLE_TIMER = 0; // milliseconds of repeating increase
-    static long lastThrottleTimestamp = 0;
+    final static int THTROTTLE_MULTIPLIER = 2; // th increase rate
+    final static int THROTTTLE_TIMER = 30; // milliseconds of repeating increase
+    private static long lastThrottleTimestamp = 0;
+    private static float lastLtInput = 0; // Last left trigger input, used in thread to control TH
+    private static float lastRtInput = 0;
+    private static boolean isThUpdaterRunning = false; // only run update thread once
+
 
     final static int DPAD_UP       = 0;
     final static int DPAD_LEFT     = 1;
@@ -175,22 +179,42 @@ public class Controller {
             throttle = convertToRCdata(rt, false);
         }
         else {
-            // TODO ASAP This should run in a new thread, not throttle should be updated all the time
-            // TODO not only on input change
-            if (System.currentTimeMillis() - lastThrottleTimestamp >= THROTTTLE_TIMER) {
-                if (rt > 0) throttle += (rt + 1) * THTROTTLE_MULTIPLIER;
-                if (lt > 0) throttle -= (lt + 1) * THTROTTLE_MULTIPLIER;
-                if (throttle > 2000) {
-                    throttle = 2000;
-                } else if (throttle < 1000) {
-                    throttle = 1000;
-                }
-                lastThrottleTimestamp = System.currentTimeMillis();
+            lastLtInput = lt + 1; // positive value -1 => 0
+            lastRtInput = rt + 1;
+            if (!isThUpdaterRunning) {
+                runThUpdater();
+                isThUpdaterRunning = true;
             }
-
         }
-        Log.d("RPYT", String.valueOf(roll) + String.valueOf(pitch) +
-                String.valueOf(yaw) + String.valueOf(throttle));
+        //Log.d("RPYT", String.valueOf(roll) + String.valueOf(pitch) +
+        //        String.valueOf(yaw) + String.valueOf(throttle));
+    }
+
+    public static void runThUpdater() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    if (System.currentTimeMillis() - lastThrottleTimestamp >= THROTTTLE_TIMER) {
+                        if (lastRtInput > 0) throttle += (lastRtInput + 1) * THTROTTLE_MULTIPLIER;
+                        if (lastLtInput > 0) throttle -= (lastLtInput + 1) * THTROTTLE_MULTIPLIER;
+                        if (throttle > 2000) {
+                            throttle = 2000;
+                        } else if (throttle < 1000) {
+                            throttle = 1000;
+                        }
+                        lastThrottleTimestamp = System.currentTimeMillis();
+                        Log.d("RPYT", String.valueOf(roll) + String.valueOf(pitch) +
+                                String.valueOf(yaw) + String.valueOf(throttle));
+                    }
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
     }
 
     public static ArrayList getGameControllerIds() {

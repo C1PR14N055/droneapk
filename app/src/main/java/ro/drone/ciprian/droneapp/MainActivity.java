@@ -171,11 +171,11 @@ public class MainActivity extends AppCompatActivity {
                         p = new DatagramPacket(message, messageStr.length(), local, SERVER_PORT);
                         s.send(p);
                         Thread.sleep(10);
-                        if (cmd != CMD_FLY && System.currentTimeMillis() - lastCmdTimestamp > 500) {
-                            cmd = CMD_FLY; // ONLY SEND COMMANDS ONCE
-                            lastCmdTimestamp = System.currentTimeMillis();
-                            Log.d("PASS", String.valueOf(cmd));
-                        }
+//                        if (cmd != CMD_FLY && System.currentTimeMillis() - lastCmdTimestamp > 500) {
+//                            cmd = CMD_FLY; // ONLY SEND COMMANDS ONCE
+//                            lastCmdTimestamp = System.currentTimeMillis();
+//                            Log.d("PASS", String.valueOf(cmd));
+//                        }
                     }
                 } catch (Exception ex) {
                     Log.e("err", ex.getMessage());
