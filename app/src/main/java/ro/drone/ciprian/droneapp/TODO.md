@@ -1,4 +1,4 @@
-- [ ] Adjust speed, increase / decrease with controller triggers
+- [x] Adjust speed, increase / decrease with controller triggers
 - [x] Do not lock screen
 - [ ] Video Streaming to Android
 - [ ] Tilt software / hardware
