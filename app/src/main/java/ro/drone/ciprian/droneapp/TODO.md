@@ -5,7 +5,7 @@
 - [ ] UI, lots of UI
 - [ ] Low battery checks (tablet, controller, drone)
 - [ ] Estimated time of flight left
-- [ ] Warning sounds / voice
+- [x] Warning sounds / voice
 - [ ] Crash / signal lost control
 - [ ] Record video on USB option
 - [ ] Auto land system

@@ -1,11 +1,21 @@
 package ro.drone.ciprian.droneapp;
 
+import android.annotation.TargetApi;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.os.Vibrator;
+import android.preference.CheckBoxPreference;
+import android.preference.Preference;
+import android.preference.PreferenceActivity;
+import android.preference.PreferenceManager;
+import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.InputDevice;
@@ -23,19 +33,26 @@ import android.widget.Toast;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
+    // API level
+    int apiLevel;
+
+    // On screen controls
     VerticalSeekBar throttle;
     VerticalSeekBar pitch;
     SeekBar roll;
     SeekBar yaw;
 
+    // networking stuff
     final String localPiIP = "192.168.1.1";
     final int SERVER_PORT = 12345;
     String messageStr;
     boolean sendData = true;
 
+    // commands
     final int CMD_ARM = 0;
     final int CMD_FLY = 1;
     final int CMD_DISARM = 2;
@@ -43,61 +60,69 @@ public class MainActivity extends AppCompatActivity {
     int cmd = 1; // command to send
     long lastCmdTimestamp = 0;
 
-    boolean useController = true;
-
+    // Device singleton instance
     Device device;
+
+    //UI post handler
+    Handler mHandler;
+
+    //Vibrator
+    Vibrator v;
+
+    // wifi progress bar
     ProgressBar signal;
+
+    // Settings
+    Button menuBtn;
+    SharedPreferences prefs;
+    String wifiSSID;
+    boolean useController;
+    boolean enableVibration;
+    boolean enableSound;
+    boolean overclockWIFI;
+    boolean safeAutoLand;
+
+    //TTS
+    TextToSpeech tts;
+    final String WARNING_SIGNAL_LOST = "warning, wifi signal lost";
+    final String WARNING_SIGNAL_LOW = "warning, wifi signal low";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //fullscreen flags
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        //screen stay on flag
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        //preferences
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        prefs.registerOnSharedPreferenceChangeListener(listener);
+        //api level
+        apiLevel = android.os.Build.VERSION.SDK_INT;
+        //set default settings
+        setSettings();
+        //inflate main activity
         setContentView(R.layout.activity_main);
 
-        final Button menuBtn = (Button) findViewById(R.id.menuBtn);
+        //menu button asignment and onclick listener
+        menuBtn = (Button) findViewById(R.id.menuBtn);
         menuBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                PopupMenu popup = new PopupMenu(MainActivity.this, menuBtn);
-                popup.getMenuInflater().inflate(R.menu.menu, popup.getMenu());
+                showPopup(v);
+                speak("menu opened");
+            }
+        });
 
-                //registering popup with OnMenuItemClickListener
-                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                    public boolean onMenuItemClick(final MenuItem item) {
-                        new AlertDialog.Builder(MainActivity.this)
-                            .setIcon(android.R.drawable.ic_dialog_alert)
-                            .setTitle("100%?")
-                            .setMessage("Are you sure?")
-                            .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    switch (item.getItemId()) {
-                                        case R.id.arm: {
-                                            cmd = CMD_ARM;
-                                            Toast.makeText(MainActivity.this, "Board Armed", Toast.LENGTH_SHORT).show();
-                                            break;
-                                        }
-                                        case R.id.disarm: {
-                                            cmd = CMD_DISARM;
-                                            Toast.makeText(MainActivity.this, "Board Disarmed", Toast.LENGTH_SHORT).show();
-                                            break;
-                                        }
-                                        case R.id.shutdown: {
-                                            cmd = CMD_SHUTDOWN;
-                                            Toast.makeText(MainActivity.this, "Shutting Down Pi", Toast.LENGTH_SHORT).show();
-                                            break;
-                                        }
-                                    }
-                                }
-                            })
-                            .setNegativeButton("No", null)
-                            .show();
-                        return true;
-                    }
-                });
-                popup.show(); //showing popup menu
+        tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if (status != TextToSpeech.ERROR) {
+                    tts.setLanguage(Locale.ENGLISH);
+                }
             }
         });
 
@@ -106,15 +131,15 @@ public class MainActivity extends AppCompatActivity {
 
         device = Device.getInstance(this);
         signal = (ProgressBar) findViewById(R.id.signal);
-        final Handler mHandler = new Handler();
-        final Vibrator v = (Vibrator) this.getSystemService(this.VIBRATOR_SERVICE);
+        mHandler = new Handler();
+        v = (Vibrator) this.getSystemService(this.VIBRATOR_SERVICE);
         // Vibrate for 500 milliseconds
 
         Runnable runnable = new Runnable() {
             int deviceSignal = 0;
             @Override
             public void run() {
-                if (!device.isWifiOn() || !device.getWifiSSID().equals("XDRONE")) return;
+                //if (!device.isWifiOn()) return; // || !device.getWifiSSID().equals("XDRONE")
                 deviceSignal = device.getWifiSignalLevel();
                 if (deviceSignal >= 75) {
                     signal.getProgressDrawable().setColorFilter(
@@ -131,12 +156,13 @@ public class MainActivity extends AppCompatActivity {
                 else if (deviceSignal >= 0) {
                     signal.getProgressDrawable().setColorFilter(
                             Color.rgb(231, 76, 60), android.graphics.PorterDuff.Mode.SRC_IN);
-                    v.vibrate(100);
+                    if (enableVibration) {v.vibrate(100);}
+                    if (enableSound) {speak(WARNING_SIGNAL_LOW);}
                 }
 
                 signal.setProgress(device.getWifiSignalLevel());
                 Log.d("SIGNAL:", String.valueOf(device.getWifiSignalLevel()));
-                mHandler.postDelayed(this, 2000);
+                mHandler.postDelayed(this, 1000);
             }
         };
         //mHandler.post(runnable);
@@ -257,12 +283,85 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    public void setSettings() {
+        wifiSSID = prefs.getString("wifiSSID", "XDRONE");
+        useController = prefs.getBoolean("useController", false);
+        enableVibration = prefs.getBoolean("enableVibration", true);
+        enableSound = prefs.getBoolean("enableSound", true);
+        overclockWIFI = prefs.getBoolean("overclockWIFI", false);
+        safeAutoLand = prefs.getBoolean("safeAutoLand", true);
+    }
+
+    SharedPreferences.OnSharedPreferenceChangeListener listener = new SharedPreferences.OnSharedPreferenceChangeListener() {
+        @Override
+        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+            setSettings();
+            //Toast.makeText(MainActivity.this, String.valueOf(useController), Toast.LENGTH_SHORT).show();
+        }
+    };
 
     public void showPopup(View v) {
-        PopupMenu popup = new PopupMenu(this, v);
-        MenuInflater inflater = popup.getMenuInflater();
-        inflater.inflate(R.menu.menu, popup.getMenu());
-        popup.show();
+        PopupMenu popup = new PopupMenu(MainActivity.this, menuBtn);
+        popup.getMenuInflater().inflate(R.menu.menu, popup.getMenu());
+
+        //registering popup with OnMenuItemClickListener
+        popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            public boolean onMenuItemClick(final MenuItem item) {
+                final int itemId = item.getItemId();
+                if (itemId == R.id.settings) {
+                    Intent intent = new Intent(MainActivity.this, PreferencesActivity.class);
+                    startActivity(intent);
+                    return true;
+                }
+                new AlertDialog.Builder(MainActivity.this)
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setTitle("WARNING")
+                        .setMessage("Are you sure you want to continue?")
+                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                switch (itemId) {
+                                    case R.id.arm: {
+                                        cmd = CMD_ARM;
+                                        Toast.makeText(MainActivity.this, "Board Armed", Toast.LENGTH_SHORT).show();
+                                        break;
+                                    }
+                                    case R.id.disarm: {
+                                        cmd = CMD_DISARM;
+                                        Toast.makeText(MainActivity.this, "Board Disarmed", Toast.LENGTH_SHORT).show();
+                                        break;
+                                    }
+                                    case R.id.shutdown: {
+                                        cmd = CMD_SHUTDOWN;
+                                        Toast.makeText(MainActivity.this, "Shutting Down Pi", Toast.LENGTH_SHORT).show();
+                                        break;
+                                    }
+                                }
+                            }
+                        })
+                        .setNegativeButton("No", null)
+                        .show();
+                return true;
+            }
+        });
+        popup.show(); //showing popup menu
+    }
+
+    String lastWarning = "";
+    long lastWarningTimeStamp = 0;
+
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    private void speak(String text) {
+        if (!enableSound) return;
+        if (!lastWarning.equals(text) || System.currentTimeMillis() - lastWarningTimeStamp > 7000) {
+            lastWarning = text;
+            lastWarningTimeStamp = System.currentTimeMillis();
+            if (apiLevel >= Build.VERSION_CODES.M) {
+                tts.speak(text, TextToSpeech.QUEUE_ADD, null, null);
+            } else {
+                tts.speak(text, TextToSpeech.QUEUE_ADD, null);
+            }
+        }
     }
 
 //    @Override

@@ -14,4 +14,8 @@
         android:id="@+id/shutdown"
         android:title="Shutdown Pi" />
 
+    <item
+        android:id="@+id/settings"
+        android:title="Settings" />
+
 </menu>

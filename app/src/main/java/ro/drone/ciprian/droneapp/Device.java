@@ -16,7 +16,7 @@ public class Device {
         wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
     }
 
-    public static Device getInstance(Context context){
+    public static synchronized Device getInstance(Context context){
         if (device == null) {
             device = new Device(context);
         }

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="WI-FI settings">
+
+        <EditTextPreference android:key="wifiSSID"
+            android:title="WI-FI SSID"
+            android:summary="Drone's WI-FI name"
+            android:defaultValue="XDRONE" />
+
+        <CheckBoxPreference android:key="overclockWIFI"
+            android:title="Overclock WIFI Adapter"
+            android:summary="Overclock WIFI for better range, Pi will restart (WARNING: unstable)"
+            android:defaultValue="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Controller settings">
+
+        <CheckBoxPreference android:key="useController"
+            android:title="Use controller"
+            android:summary="Use controller instead of on screen controls"
+            android:defaultValue="true" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Device settings">
+
+        <CheckBoxPreference android:key="enableSound"
+            android:title="Sound"
+            android:summary="Sound alert when low battery/signal"
+            android:defaultValue="true" />
+
+        <EditTextPreference android:key="warningsDelay"
+            android:title="Delay warnings"
+            android:summary="Delay sound warnings (in milliseconds)"
+            android:dependency="enableSound"
+            android:defaultValue="7000"
+            android:inputType="number" />
+
+        <CheckBoxPreference android:key="enableVibration"
+            android:title="Vibrate"
+            android:summary="Vibrate when low battery/signal"
+            android:defaultValue="true" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Drone settings">
+
+        <CheckBoxPreference android:key="safeAutoLand"
+            android:title="Safe Auto Landing"
+            android:summary="Safely land in case of signal lost/failure"
+            android:defaultValue="true" />
+
+    </PreferenceCategory>
+</PreferenceScreen>
