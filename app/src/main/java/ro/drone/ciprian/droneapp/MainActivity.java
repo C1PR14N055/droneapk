@@ -2,6 +2,7 @@ package ro.drone.ciprian.droneapp;
 
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -11,15 +12,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.os.Vibrator;
-import android.preference.CheckBoxPreference;
-import android.preference.Preference;
-import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
 import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.InputDevice;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
@@ -64,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
     Device device;
 
     //UI post handler
-    Handler mHandler;
+    Handler handler;
 
     //Vibrator
     Vibrator v;
@@ -86,6 +83,8 @@ public class MainActivity extends AppCompatActivity {
     TextToSpeech tts;
     final String WARNING_SIGNAL_LOST = "warning, wifi signal lost";
     final String WARNING_SIGNAL_LOW = "warning, wifi signal low";
+    final String ENGAGING_AUTOLAND = "engaging autonomous landing";
+    final String WIFI_OFFLINE = "wifi offline";
 
 
     @Override
@@ -113,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 showPopup(v);
-                speak("menu opened");
+                //speak("menu opened");
             }
         });
 
@@ -131,15 +130,14 @@ public class MainActivity extends AppCompatActivity {
 
         device = Device.getInstance(this);
         signal = (ProgressBar) findViewById(R.id.signal);
-        mHandler = new Handler();
-        v = (Vibrator) this.getSystemService(this.VIBRATOR_SERVICE);
-        // Vibrate for 500 milliseconds
+        handler = new Handler();
+        v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
 
         Runnable runnable = new Runnable() {
             int deviceSignal = 0;
             @Override
             public void run() {
-                //if (!device.isWifiOn()) return; // || !device.getWifiSSID().equals("XDRONE")
+                if (!device.isWifiOn()) return; // || !device.getWifiSSID().equals(wifiSSID)
                 deviceSignal = device.getWifiSignalLevel();
                 if (deviceSignal >= 75) {
                     signal.getProgressDrawable().setColorFilter(
@@ -156,22 +154,21 @@ public class MainActivity extends AppCompatActivity {
                 else if (deviceSignal >= 0) {
                     signal.getProgressDrawable().setColorFilter(
                             Color.rgb(231, 76, 60), android.graphics.PorterDuff.Mode.SRC_IN);
-                    if (enableVibration) {v.vibrate(100);}
-                    if (enableSound) {speak(WARNING_SIGNAL_LOW);}
+                    vibrate();
+                    speak(ENGAGING_AUTOLAND);
                 }
 
                 signal.setProgress(device.getWifiSignalLevel());
                 Log.d("SIGNAL:", String.valueOf(device.getWifiSignalLevel()));
-                mHandler.postDelayed(this, 1000);
+                handler.postDelayed(this, 1000);
             }
         };
-        //mHandler.post(runnable);
+        //handler.post(runnable);
         if (!device.isWifiOn()) {
-            Toast toast = Toast.makeText(this, "Wifi is OFF!!", Toast.LENGTH_SHORT);
-            toast.show();
-        } else if (!device.getWifiSSID().equals("XDRONE")) {
-            Toast toast = Toast.makeText(this, "Please connect to XDRONE wifi!!", Toast.LENGTH_SHORT);
-            toast.show();
+            Toast.makeText(this, "Wifi is OFF!!", Toast.LENGTH_SHORT).show();
+            speak(WIFI_OFFLINE);
+        } else if (!device.getWifiSSID().equals(wifiSSID)) {
+            Toast.makeText(this, "Please connect to " + wifiSSID + " wifi!!", Toast.LENGTH_SHORT).show();
         }
         runnable.run();
 
@@ -182,6 +179,7 @@ public class MainActivity extends AppCompatActivity {
                     DatagramSocket s = new DatagramSocket();
                     // Raspberry Pi Hotspot Address
                     InetAddress local = InetAddress.getByName(localPiIP);
+                    // TODO IP:PORT SETTINGS
                     byte[] message;
                     DatagramPacket p;
                     while (sendData) {
@@ -197,11 +195,11 @@ public class MainActivity extends AppCompatActivity {
                         p = new DatagramPacket(message, messageStr.length(), local, SERVER_PORT);
                         s.send(p);
                         Thread.sleep(10);
-//                        if (cmd != CMD_FLY && System.currentTimeMillis() - lastCmdTimestamp > 500) {
-//                            cmd = CMD_FLY; // ONLY SEND COMMANDS ONCE
-//                            lastCmdTimestamp = System.currentTimeMillis();
-//                            Log.d("PASS", String.valueOf(cmd));
-//                        }
+                        if (cmd != CMD_FLY && System.currentTimeMillis() - lastCmdTimestamp > 500) {
+                            cmd = CMD_FLY; // ONLY SEND COMMANDS ONCE
+                            lastCmdTimestamp = System.currentTimeMillis();
+                            Log.d("PASS", String.valueOf(cmd));
+                        }
                     }
                 } catch (Exception ex) {
                     Log.e("err", ex.getMessage());
@@ -263,7 +261,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
         yaw = (SeekBar) findViewById(R.id.yawSeekBar);
         yaw.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -281,6 +278,13 @@ public class MainActivity extends AppCompatActivity {
                 seekBar.setProgress(seekBar.getMax() / 2);
             }
         });
+    }
+
+    @Override
+    public void onBackPressed() {
+        //super.onBackPressed();
+        Toast.makeText(MainActivity.this, "NO", Toast.LENGTH_SHORT).show();
+        //TODO options for this, with alert, no exiting, exiting
     }
 
     public void setSettings() {
@@ -320,6 +324,7 @@ public class MainActivity extends AppCompatActivity {
                         .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
+                                lastCmdTimestamp = System.currentTimeMillis();
                                 switch (itemId) {
                                     case R.id.arm: {
                                         cmd = CMD_ARM;
@@ -350,6 +355,7 @@ public class MainActivity extends AppCompatActivity {
     String lastWarning = "";
     long lastWarningTimeStamp = 0;
 
+    @SuppressWarnings("deprecation")
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     private void speak(String text) {
         if (!enableSound) return;
@@ -362,6 +368,13 @@ public class MainActivity extends AppCompatActivity {
                 tts.speak(text, TextToSpeech.QUEUE_ADD, null);
             }
         }
+    }
+
+    private void vibrate() {
+        if (enableVibration) {
+            v.vibrate(100);
+        }
+        //TODO vibrate intensity
     }
 
 //    @Override
