@@ -93,7 +93,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     final String WIFI_OFFLINE = "wifi offline";
 
     //MediaPlayer on surfaceView
-    String streamPath = "rtsp://media.smart-streaming.com/mytest/mp4:sample_phone_150k.mp4";//"rtp://224.0.0.1:5004"; "rtsp://192.168.2.16:8554/stream";
+    String streamPath = "rtsp://192.168.2.16:8554/";//"rtsp://media.smart-streaming.com/mytest/mp4:sample_phone_150k.mp4";//"rtp://224.0.0.1:5004"; "rtsp://192.168.2.16:8554/stream";
     Uri streamUri;
     private MediaPlayer mediaPlayer;
     private SurfaceView surfaceView;
@@ -306,6 +306,12 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 seekBar.setProgress(seekBar.getMax() / 2);
             }
         });
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        mediaPlayer.release();
     }
 
     @Override
