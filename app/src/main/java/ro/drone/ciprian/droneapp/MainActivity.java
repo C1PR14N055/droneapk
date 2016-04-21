@@ -1,12 +1,15 @@
 package ro.drone.ciprian.droneapp;
 
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -15,10 +18,13 @@ import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutCompat;
 import android.util.Log;
 import android.view.InputDevice;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -32,7 +38,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback{
 
     // API level
     int apiLevel;
@@ -86,6 +92,14 @@ public class MainActivity extends AppCompatActivity {
     final String ENGAGING_AUTOLAND = "engaging autonomous landing";
     final String WIFI_OFFLINE = "wifi offline";
 
+    //MediaPlayer on surfaceView
+    String streamPath = "rtsp://media.smart-streaming.com/mytest/mp4:sample_phone_150k.mp4";//"rtp://224.0.0.1:5004"; "rtsp://192.168.2.16:8554/stream";
+    Uri streamUri;
+    private MediaPlayer mediaPlayer;
+    private SurfaceView surfaceView;
+    private SurfaceHolder surfaceHolder;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,6 +119,20 @@ public class MainActivity extends AppCompatActivity {
         setSettings();
         //inflate main activity
         setContentView(R.layout.activity_main);
+
+        //MediaPlayer
+        surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
+        surfaceHolder = surfaceView.getHolder();
+        surfaceHolder.setFixedSize(800, 480);
+        surfaceHolder.addCallback(this);
+        surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        mediaPlayer = new MediaPlayer();
+
+        Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+        i.setType("video/*");
+        //startActivityForResult(i, 1234);
+        streamUri = Uri.parse(streamPath);
+        play();
 
         //menu button asignment and onclick listener
         menuBtn = (Button) findViewById(R.id.menuBtn);
@@ -413,4 +441,39 @@ public class MainActivity extends AppCompatActivity {
         return super.onGenericMotionEvent(event);
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1234) {
+            if (resultCode == Activity.RESULT_OK) {
+                streamUri = data.getData();
+                play();
+            }
+        }
+    }
+
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        mediaPlayer.setDisplay(surfaceHolder);
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+
+    }
+
+    void play() {
+        try {
+            mediaPlayer.setDataSource(getApplicationContext(), streamUri);
+            mediaPlayer.prepare();
+            mediaPlayer.start();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
 }
