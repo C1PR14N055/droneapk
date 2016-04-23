@@ -28,11 +28,14 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.MediaController;
 import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.Toast;
+import android.widget.VideoView;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -92,14 +95,18 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     final String ENGAGING_AUTOLAND = "engaging autonomous landing";
     final String WIFI_OFFLINE = "wifi offline";
 
+    //Stream methods 0 = MediaPlayer & SurfaceView, 1 = VideoView, 2 = Native Video Player
+    final int STREAM_USING = 0;
+
     //MediaPlayer on surfaceView
-    String streamPath = "rtsp://192.168.2.16:8554/";//"rtsp://media.smart-streaming.com/mytest/mp4:sample_phone_150k.mp4";//"rtp://224.0.0.1:5004"; "rtsp://192.168.2.16:8554/stream";
+    String streamPath = "rtsp://192.168.1.143:8554/";//;"rtsp://media.smart-streaming.com/mytest/mp4:sample_phone_150k.mp4";//"rtp://239.255.0.1:5004/";
     Uri streamUri;
     private MediaPlayer mediaPlayer;
     private SurfaceView surfaceView;
     private SurfaceHolder surfaceHolder;
 
-
+    //VideoView
+    VideoView videoView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -121,18 +128,47 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         setContentView(R.layout.activity_main);
 
         //MediaPlayer
-        surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
-        surfaceHolder = surfaceView.getHolder();
-        surfaceHolder.setFixedSize(800, 480);
-        surfaceHolder.addCallback(this);
-        surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-        mediaPlayer = new MediaPlayer();
+        switch (STREAM_USING) {
+            case 0: {
+                surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
+                surfaceHolder = surfaceView.getHolder();
+                surfaceHolder.setFixedSize(800, 480);
+                surfaceHolder.addCallback(this);
+                surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+                mediaPlayer = new MediaPlayer();
 
-        Intent i = new Intent(Intent.ACTION_GET_CONTENT);
-        i.setType("video/*");
-        //startActivityForResult(i, 1234);
-        streamUri = Uri.parse(streamPath);
-        play();
+                Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+                i.setType("video/*");
+                //startActivityForResult(i, 1234);
+                streamUri = Uri.parse(streamPath);
+                play();
+                break;
+            }
+            case 1: {
+                videoView = (VideoView) findViewById(R.id.videoView);
+                videoView.setVideoURI(Uri.parse(streamPath));
+                videoView.setMediaController(new MediaController(this));
+                videoView.requestFocus();
+                try {
+                    videoView.start();
+                }
+                catch (SecurityException se) {
+                    Log.e("SE", se.getMessage());
+                    se.printStackTrace();
+                }
+                break;
+            }
+            case 2: {
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(streamPath));
+                startActivity(intent);
+                break;
+            }
+            default: {
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(streamPath));
+                startActivity(intent);
+            }
+        }
+
 
         //menu button asignment and onclick listener
         menuBtn = (Button) findViewById(R.id.menuBtn);
@@ -311,7 +347,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     @Override
     protected void onStop() {
         super.onStop();
-        mediaPlayer.release();
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+        }
     }
 
     @Override
@@ -460,7 +498,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        mediaPlayer.setDisplay(surfaceHolder);
+        if (mediaPlayer != null) {
+            mediaPlayer.setDisplay(surfaceHolder);
+        }
     }
 
     @Override
@@ -477,9 +517,18 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         try {
             mediaPlayer.setDataSource(getApplicationContext(), streamUri);
             mediaPlayer.prepare();
-            mediaPlayer.start();
-        } catch (Exception ex) {
-            ex.printStackTrace();
+            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                @Override
+                public void onPrepared(MediaPlayer mp) {
+                    mediaPlayer.start();
+                }
+            });
+
+        } catch (SecurityException se) {
+            Log.e("SE", se.getMessage());
+            se.printStackTrace();
+        } catch (IOException ie) {
+            ie.printStackTrace();
         }
     }
 }
