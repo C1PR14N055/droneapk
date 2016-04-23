@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
@@ -35,6 +36,7 @@ import android.widget.SeekBar;
 import android.widget.Toast;
 import android.widget.VideoView;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -96,10 +98,10 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     final String WIFI_OFFLINE = "wifi offline";
 
     //Stream methods 0 = MediaPlayer & SurfaceView, 1 = VideoView, 2 = Native Video Player
-    final int STREAM_USING = 0;
+    final int STREAM_USING = -1;
 
     //MediaPlayer on surfaceView
-    String streamPath = "rtsp://192.168.1.143:8554/";//;"rtsp://media.smart-streaming.com/mytest/mp4:sample_phone_150k.mp4";//"rtp://239.255.0.1:5004/";
+    String streamPath = "rtsp://192.168.1.143:8554/song.mp3";//;"rtsp://media.smart-streaming.com/mytest/mp4:sample_phone_150k.mp4";//"rtp://239.255.0.1:5004/";
     Uri streamUri;
     private MediaPlayer mediaPlayer;
     private SurfaceView surfaceView;
@@ -137,8 +139,31 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
                 mediaPlayer = new MediaPlayer();
 
-                Intent i = new Intent(Intent.ACTION_GET_CONTENT);
-                i.setType("video/*");
+                mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+                    @Override
+                    public boolean onError(MediaPlayer mp, int what, int extra) {
+                        if (what == MediaPlayer.MEDIA_ERROR_SERVER_DIED) {
+                            mediaPlayer.release();
+                            mediaPlayer = new MediaPlayer();
+                            //mediaPlayer.stop();
+                            play();
+                        }
+                        return false;
+                    }
+                });
+
+                mediaPlayer.setOnBufferingUpdateListener(new MediaPlayer.OnBufferingUpdateListener() {
+                    @Override
+                    public void onBufferingUpdate(MediaPlayer mp, int percent) {
+                        Toast.makeText(getApplicationContext(), "BUFF : " + percent, Toast.LENGTH_SHORT);
+                        if (!mediaPlayer.isPlaying()) {
+                            play();
+                        }
+                    }
+                });
+
+                //Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+                //i.setType("video/*");
                 //startActivityForResult(i, 1234);
                 streamUri = Uri.parse(streamPath);
                 play();
@@ -164,8 +189,8 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 break;
             }
             default: {
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(streamPath));
-                startActivity(intent);
+                //Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(streamPath));
+                //startActivity(intent);
             }
         }
 
@@ -515,14 +540,21 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     void play() {
         try {
+            //final FileInputStream fis = new FileInputStream(streamPath);
+            mediaPlayer.stop();
+            mediaPlayer.reset();
             mediaPlayer.setDataSource(getApplicationContext(), streamUri);
-            mediaPlayer.prepare();
+            //mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+
+            mediaPlayer.prepareAsync();
             mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
                 public void onPrepared(MediaPlayer mp) {
+                    //mediaPlayer.reset();
                     mediaPlayer.start();
                 }
             });
+
 
         } catch (SecurityException se) {
             Log.e("SE", se.getMessage());
