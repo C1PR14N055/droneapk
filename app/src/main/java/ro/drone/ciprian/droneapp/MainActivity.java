@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.os.SystemClock;
 import android.os.Vibrator;
 import android.preference.PreferenceManager;
@@ -98,10 +99,10 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     final String WIFI_OFFLINE = "wifi offline";
 
     //Stream methods 0 = MediaPlayer & SurfaceView, 1 = VideoView, 2 = Native Video Player
-    final int STREAM_USING = -1;
+    final int STREAM_USING = 1;
 
     //MediaPlayer on surfaceView
-    String streamPath = "rtsp://192.168.1.143:8554/song.mp3";//;"rtsp://media.smart-streaming.com/mytest/mp4:sample_phone_150k.mp4";//"rtp://239.255.0.1:5004/";
+    String streamPath = "rtsp://10.0.2.2:8554/test.3gp";//"rtsp://media.smart-streaming.com/mytest/mp4:sample_phone_150k.mp4";//;"rtp://239.255.0.1:5004/";
     Uri streamUri;
     private MediaPlayer mediaPlayer;
     private SurfaceView surfaceView;
@@ -155,9 +156,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 mediaPlayer.setOnBufferingUpdateListener(new MediaPlayer.OnBufferingUpdateListener() {
                     @Override
                     public void onBufferingUpdate(MediaPlayer mp, int percent) {
-                        Toast.makeText(getApplicationContext(), "BUFF : " + percent, Toast.LENGTH_SHORT);
+                        Toast.makeText(getApplicationContext(), "BUFF : " + percent, Toast.LENGTH_SHORT).show();
                         if (!mediaPlayer.isPlaying()) {
-                            play();
+                            mediaPlayer.start();
                         }
                     }
                 });
@@ -172,7 +173,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             case 1: {
                 videoView = (VideoView) findViewById(R.id.videoView);
                 videoView.setVideoURI(Uri.parse(streamPath));
-                videoView.setMediaController(new MediaController(this));
+                MediaController mediaController = new MediaController(this);
+                mediaController.setAnchorView(videoView);
+                videoView.setMediaController(mediaController);
                 videoView.requestFocus();
                 try {
                     videoView.start();
