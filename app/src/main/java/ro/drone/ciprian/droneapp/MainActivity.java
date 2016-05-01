@@ -8,19 +8,16 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
-import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
-import android.os.SystemClock;
 import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutCompat;
+import android.util.Base64;
 import android.util.Log;
 import android.view.InputDevice;
 import android.view.MenuItem;
@@ -29,6 +26,8 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.MediaController;
 import android.widget.PopupMenu;
@@ -37,8 +36,8 @@ import android.widget.SeekBar;
 import android.widget.Toast;
 import android.widget.VideoView;
 
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -99,7 +98,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     final String WIFI_OFFLINE = "wifi offline";
 
     //Stream methods 0 = MediaPlayer & SurfaceView, 1 = VideoView, 2 = Native Video Player
-    final int STREAM_USING = 1;
+    final int STREAM_USING = 3;
 
     //MediaPlayer on surfaceView
     String streamPath = "rtsp://10.0.2.2:8554/test.3gp";//"rtsp://media.smart-streaming.com/mytest/mp4:sample_phone_150k.mp4";//;"rtp://239.255.0.1:5004/";
@@ -110,6 +109,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     //VideoView
     VideoView videoView;
+
+    //WebView
+    WebView webView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,7 +135,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         //MediaPlayer
         switch (STREAM_USING) {
             case 0: {
-                surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
+                //surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
                 surfaceHolder = surfaceView.getHolder();
                 surfaceHolder.setFixedSize(800, 480);
                 surfaceHolder.addCallback(this);
@@ -189,6 +191,33 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             case 2: {
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(streamPath));
                 startActivity(intent);
+                break;
+            }
+            case 3: {
+                webView = (WebView) findViewById(R.id.webView);
+                webView.loadUrl("http://192.168.1.1:9090/stream/webrtc");
+                webView.getSettings().setJavaScriptEnabled(true);
+                final String webViewJs = "(function() { " +
+                        "var html = document.getElementsByTagName('*'); for (el in html)" +
+                        "if (html.hasOwnProperty(el)) {" +
+                        "    if(html[el].id != 'remote-video') {" +
+                        "        html[el].remove();" +
+                        "    }" +
+                        "}})();";
+                webView.setWebViewClient(new WebViewClient(){
+                    @Override
+                    public void onPageFinished(WebView view, String url) {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                            //webView.evaluateJavascript(webViewJs, null);
+                            webView.evaluateJavascript("start();", null);
+                            //webView.evaluateJavascript("fullscreen();", null);
+                        } else {
+                            //webView.loadUrl("javascript:" + webViewJs);
+                        }
+                        injectCSS();
+                        super.onPageFinished(view, url);
+                    }
+                });
                 break;
             }
             default: {
@@ -564,6 +593,25 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             se.printStackTrace();
         } catch (IOException ie) {
             ie.printStackTrace();
+        }
+    }
+    private void injectCSS() {
+        try {
+            InputStream inputStream = getAssets().open("style.css");
+            byte[] buffer = new byte[inputStream.available()];
+            inputStream.read(buffer);
+            inputStream.close();
+            String encoded = Base64.encodeToString(buffer, Base64.NO_WRAP);
+            webView.loadUrl("javascript:(function() {" +
+                    "var parent = document.getElementsByTagName('head').item(0);" +
+                    "var style = document.createElement('style');" +
+                    "style.type = 'text/css';" +
+                    // Tell the browser to BASE64-decode the string into your script !!!
+                    "style.innerHTML = window.atob('" + encoded + "');" +
+                    "parent.appendChild(style)" +
+                    "})();");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
