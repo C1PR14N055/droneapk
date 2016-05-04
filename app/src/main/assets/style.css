@@ -1,17 +1,18 @@
+* {
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    border: none;
+}
 #remote-video {
     position: fixed;
     width: 100%;
-    height: 100%;
     padding: 0;
     margin: 0;
     top: 0;
     left: 0;
     z-index: 9999;
-    background: #fff;
-}
-* {
-    overflow: hidden;
-    padding: 0;
-    margin: 0;
+    background: #000;
+    display: block;
     border: none;
 }

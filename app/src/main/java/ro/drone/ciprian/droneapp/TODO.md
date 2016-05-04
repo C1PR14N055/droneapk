@@ -1,6 +1,6 @@
 - [x] Adjust speed, increase / decrease with controller triggers
 - [x] Do not lock screen
-- [ ] Video Streaming to Android
+- [x] Video Streaming to Android
 - [ ] Tilt software / hardware
 - [ ] UI, lots of UI
 - [ ] Low battery checks (tablet, controller, drone)
@@ -25,3 +25,4 @@
 - [ ] Telemetry
 - [ ] Overclock WLAN interface for better range, remote option
 - [ ] Terminal from device to drone
+- [ ] Implement TCP

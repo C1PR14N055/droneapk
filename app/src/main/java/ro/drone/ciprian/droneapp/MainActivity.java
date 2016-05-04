@@ -36,11 +36,18 @@ import android.widget.SeekBar;
 import android.widget.Toast;
 import android.widget.VideoView;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback{
@@ -55,8 +62,10 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     SeekBar yaw;
 
     // networking stuff
-    final String localPiIP = "192.168.1.1";
+    final String localPiIP = "192.168.2.112";
     final int SERVER_PORT = 12345;
+    BufferedReader in = null;
+    PrintWriter out = null;
     String messageStr;
     boolean sendData = true;
 
@@ -173,7 +182,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 break;
             }
             case 1: {
-                videoView = (VideoView) findViewById(R.id.videoView);
+                //videoView = (VideoView) findViewById(R.id.videoView);
                 videoView.setVideoURI(Uri.parse(streamPath));
                 MediaController mediaController = new MediaController(this);
                 mediaController.setAnchorView(videoView);
@@ -258,7 +267,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             int deviceSignal = 0;
             @Override
             public void run() {
-                if (!device.isWifiOn()) return; // || !device.getWifiSSID().equals(wifiSSID)
+                if (!device.isWifiOn() || !device.getWifiSSID().equals(wifiSSID)) return;
                 deviceSignal = device.getWifiSignalLevel();
                 if (deviceSignal >= 75) {
                     signal.getProgressDrawable().setColorFilter(
@@ -293,16 +302,17 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
         runnable.run();
 
-        // UDP SEND THREAD
+        // TCP CLIENT THREAD
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    DatagramSocket s = new DatagramSocket();
                     // Raspberry Pi Hotspot Address
-                    InetAddress local = InetAddress.getByName(localPiIP);
+                    InetAddress serverAddress = InetAddress.getByName(localPiIP);
+                    Socket socket = new Socket(serverAddress, SERVER_PORT);
+                    in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+                    Log.d("TEST", String.valueOf(socket.getInputStream()));
                     // TODO IP:PORT SETTINGS
-                    byte[] message;
-                    DatagramPacket p;
                     while (sendData) {
                         if (useController) {
                             messageStr = String.valueOf(Controller.roll + "" + Controller.pitch +
@@ -312,10 +322,10 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                                     (yaw.getProgress() + 1000) + (throttle.getProgress() + 1000) + cmd);
                         }
                         //Log.d("SENT:", messageStr);
-                        message = messageStr.getBytes();
-                        p = new DatagramPacket(message, messageStr.length(), local, SERVER_PORT);
-                        s.send(p);
-                        Thread.sleep(10);
+                        out.write(messageStr);
+                        out.flush();
+                        //s.send(p);
+                        Thread.sleep(1000);
                         if (cmd != CMD_FLY && System.currentTimeMillis() - lastCmdTimestamp > 500) {
                             cmd = CMD_FLY; // ONLY SEND COMMANDS ONCE
                             lastCmdTimestamp = System.currentTimeMillis();
@@ -406,6 +416,27 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         super.onStop();
         if (mediaPlayer != null) {
             mediaPlayer.release();
+        }
+        if (webView != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                webView.evaluateJavascript("stop();", null);
+            }
+            else {
+                webView.loadUrl("javascript:stop();");
+            }
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (webView != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                webView.evaluateJavascript("stop();", null);
+            }
+            else {
+                webView.loadUrl("javascript:stop();");
+            }
         }
     }
 

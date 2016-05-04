@@ -28,7 +28,7 @@ public class Device {
     }
 
     public String getWifiSSID() {
-        return wifiManager.getConnectionInfo().getSSID();
+        return wifiManager.getConnectionInfo().getSSID().replace("\"", "");
     }
 
     public int getWifiSignalLevel() {
