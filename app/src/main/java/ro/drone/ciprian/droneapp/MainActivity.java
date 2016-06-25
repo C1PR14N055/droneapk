@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     SeekBar yaw;
 
     // networking stuff
-    final String localPiIP = "192.168.2.112";
+    final String localPiIP = "192.168.1.1";
     final int SERVER_PORT = 12345;
     BufferedReader in = null;
     PrintWriter out = null;
@@ -76,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     final int CMD_SHUTDOWN = 3;
     int cmd = 1; // command to send
     long lastCmdTimestamp = 0;
+    int delayResendCmd = 33;
 
     // Device singleton instance
     Device device;
@@ -204,7 +205,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             }
             case 3: {
                 webView = (WebView) findViewById(R.id.webView);
-                webView.loadUrl("http://192.168.1.1:9090/stream/webrtc");
+                webView.loadUrl("http://192.168.1.1:9090/stream/"); // /stream/webrtc
                 webView.getSettings().setJavaScriptEnabled(true);
                 final String webViewJs = "(function() { " +
                         "var html = document.getElementsByTagName('*'); for (el in html)" +
@@ -219,7 +220,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
                             //webView.evaluateJavascript(webViewJs, null);
                             webView.evaluateJavascript("start();", null);
-                            //webView.evaluateJavascript("fullscreen();", null);
+                            webView.evaluateJavascript("fullscreen();", null);
                         } else {
                             //webView.loadUrl("javascript:" + webViewJs);
                         }
@@ -325,7 +326,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                         out.write(messageStr);
                         out.flush();
                         //s.send(p);
-                        Thread.sleep(1000);
+                        Thread.sleep(delayResendCmd);
                         if (cmd != CMD_FLY && System.currentTimeMillis() - lastCmdTimestamp > 500) {
                             cmd = CMD_FLY; // ONLY SEND COMMANDS ONCE
                             lastCmdTimestamp = System.currentTimeMillis();
