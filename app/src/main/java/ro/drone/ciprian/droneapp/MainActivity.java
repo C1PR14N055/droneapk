@@ -303,17 +303,21 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
         runnable.run();
 
-        // TCP CLIENT THREAD
+        // UDP THREAD
         new Thread(new Runnable() {
             public void run() {
                 try {
+                    DatagramSocket s = new DatagramSocket();
+                    InetAddress local = InetAddress.getByName(localPiIP);
                     // Raspberry Pi Hotspot Address
-                    InetAddress serverAddress = InetAddress.getByName(localPiIP);
-                    Socket socket = new Socket(serverAddress, SERVER_PORT);
-                    in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
-                    Log.d("TEST", String.valueOf(socket.getInputStream()));
+                    //InetAddress serverAddress = InetAddress.getByName(localPiIP);
+                    //Socket socket = new Socket(serverAddress, SERVER_PORT);
+                    //in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    //out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+                    //Log.d("TEST", String.valueOf(socket.getInputStream()));
                     // TODO IP:PORT SETTINGS
+                    byte[] message;
+                    DatagramPacket p;
                     while (sendData) {
                         if (useController) {
                             messageStr = String.valueOf(Controller.roll + "" + Controller.pitch +
@@ -323,13 +327,17 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                                     (yaw.getProgress() + 1000) + (throttle.getProgress() + 1000) + cmd);
                         }
                         //Log.d("SENT:", messageStr);
-                        out.write(messageStr);
-                        out.flush();
+                        message = messageStr.getBytes();
+                        p = new DatagramPacket(message, messageStr.length(), local, SERVER_PORT);
+                        s.send(p);
+                        Thread.sleep(10);
+                        //out.write(messageStr);
+                        //out.flush();
                         //s.send(p);
                         Thread.sleep(delayResendCmd);
                         if (cmd != CMD_FLY && System.currentTimeMillis() - lastCmdTimestamp > 500) {
-                            cmd = CMD_FLY; // ONLY SEND COMMANDS ONCE
-                            lastCmdTimestamp = System.currentTimeMillis();
+                            //cmd = CMD_FLY; // ONLY SEND COMMANDS ONCE
+                            //lastCmdTimestamp = System.currentTimeMillis();
                             Log.d("PASS", String.valueOf(cmd));
                         }
                     }
@@ -416,14 +424,14 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     protected void onStop() {
         super.onStop();
         if (mediaPlayer != null) {
-            mediaPlayer.release();
+            //mediaPlayer.release();
         }
         if (webView != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                webView.evaluateJavascript("stop();", null);
+                //webView.evaluateJavascript("stop();", null);
             }
             else {
-                webView.loadUrl("javascript:stop();");
+                //webView.loadUrl("javascript:stop();");
             }
         }
     }
@@ -433,10 +441,10 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         super.onPause();
         if (webView != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                webView.evaluateJavascript("stop();", null);
+                //webView.evaluateJavascript("stop();", null);
             }
             else {
-                webView.loadUrl("javascript:stop();");
+                //webView.loadUrl("javascript:stop();");
             }
         }
     }
