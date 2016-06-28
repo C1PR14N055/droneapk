@@ -36,18 +36,11 @@ import android.widget.SeekBar;
 import android.widget.Toast;
 import android.widget.VideoView;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback{
@@ -64,8 +57,8 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     // networking stuff
     final String localPiIP = "192.168.1.1";
     final int SERVER_PORT = 12345;
-    BufferedReader in = null;
-    PrintWriter out = null;
+    //BufferedReader in = null;
+    //PrintWriter out = null;
     String messageStr;
     boolean sendData = true;
 
@@ -76,7 +69,8 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     final int CMD_SHUTDOWN = 3;
     int cmd = 1; // command to send
     long lastCmdTimestamp = 0;
-    int delayResendCmd = 33;
+    static final int delayResendCmd = 33;
+    static final int delayReadController = 33;
 
     // Device singleton instance
     Device device;
@@ -111,7 +105,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     final int STREAM_USING = 3;
 
     //MediaPlayer on surfaceView
-    String streamPath = "rtsp://10.0.2.2:8554/test.3gp";//"rtsp://media.smart-streaming.com/mytest/mp4:sample_phone_150k.mp4";//;"rtp://239.255.0.1:5004/";
+    String streamPath = "rtsp://10.0.2.2:8554/test.mov";//"rtsp://media.smart-streaming.com/mytest/mp4:sample_phone_150k.mp4";//;"rtp://239.255.0.1:5004/";
     Uri streamUri;
     private MediaPlayer mediaPlayer;
     private SurfaceView surfaceView;
@@ -243,7 +237,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             @Override
             public void onClick(View v) {
                 showPopup(v);
-                //speak("menu opened");
+                speak("menu opened");
             }
         });
 
@@ -330,7 +324,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                         message = messageStr.getBytes();
                         p = new DatagramPacket(message, messageStr.length(), local, SERVER_PORT);
                         s.send(p);
-                        Thread.sleep(10);
                         //out.write(messageStr);
                         //out.flush();
                         //s.send(p);
@@ -509,6 +502,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                                         cmd = CMD_SHUTDOWN;
                                         Toast.makeText(MainActivity.this, "Shutting Down Pi", Toast.LENGTH_SHORT).show();
                                         break;
+                                    }
+                                    case R.id.exit: {
+                                        System.exit(0);
                                     }
                                 }
                             }

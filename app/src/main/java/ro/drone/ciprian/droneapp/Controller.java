@@ -19,7 +19,8 @@ public class Controller {
     public static int throttle = 1000;
 
     final static boolean USE_RAW_THROTTLE = false;
-    final static int THTROTTLE_MULTIPLIER = 2; // th increase rate
+    final static int THTROTTLE_MULTIPLIER_UP = 2; // th increase rate
+    final static int THTROTTLE_MULTIPLIER_DOWN = 3; // th increase rate
     final static int THROTTTLE_TIMER = 30; // milliseconds of repeating increase
     private static long lastThrottleTimestamp = 0;
     private static float lastLtInput = 0; // Last left trigger input, used in thread to control TH
@@ -196,8 +197,8 @@ public class Controller {
             public void run() {
                 while (true) {
                     if (System.currentTimeMillis() - lastThrottleTimestamp >= THROTTTLE_TIMER) {
-                        if (lastRtInput > 0) throttle += (lastRtInput + 1) * THTROTTLE_MULTIPLIER;
-                        if (lastLtInput > 0) throttle -= (lastLtInput + 1) * THTROTTLE_MULTIPLIER;
+                        if (lastRtInput > 0) throttle += (lastRtInput + 1) * THTROTTLE_MULTIPLIER_UP;
+                        if (lastLtInput > 0) throttle -= (lastLtInput + 1) * THTROTTLE_MULTIPLIER_DOWN;
                         if (throttle > 2000) {
                             throttle = 2000;
                         } else if (throttle < 1000) {
@@ -208,7 +209,7 @@ public class Controller {
                                 String.valueOf(yaw) + String.valueOf(throttle));
                     }
                     try {
-                        Thread.sleep(10);
+                        Thread.sleep(MainActivity.delayReadController);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
