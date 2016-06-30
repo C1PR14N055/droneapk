@@ -1,15 +1,12 @@
 package ro.drone.ciprian.droneapp;
 
 import android.annotation.TargetApi;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
-import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -22,37 +19,25 @@ import android.util.Log;
 import android.view.InputDevice;
 import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
-import android.widget.MediaController;
 import android.widget.PopupMenu;
 import android.widget.ProgressBar;
-import android.widget.SeekBar;
 import android.widget.Toast;
-import android.widget.VideoView;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback{
+public class MainActivity extends AppCompatActivity {
 
     // API level
     int apiLevel;
-
-    // On screen controls
-    VerticalSeekBar throttle;
-    VerticalSeekBar pitch;
-    SeekBar roll;
-    SeekBar yaw;
 
     // networking stuff
     final String localPiIP = "192.168.1.1";
@@ -70,7 +55,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     int cmd = 1; // command to send
     long lastCmdTimestamp = 0;
     static final int delayResendCmd = 33;
-    static final int delayReadController = 33;
+    static final int delayUpdateThrottle = 33;
 
     // Device singleton instance
     Device device;
@@ -101,19 +86,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     final String ENGAGING_AUTOLAND = "engaging autonomous landing";
     final String WIFI_OFFLINE = "wifi offline";
 
-    //Stream methods 0 = MediaPlayer & SurfaceView, 1 = VideoView, 2 = Native Video Player
-    final int STREAM_USING = 3;
-
-    //MediaPlayer on surfaceView
-    String streamPath = "rtsp://10.0.2.2:8554/test.mov";//"rtsp://media.smart-streaming.com/mytest/mp4:sample_phone_150k.mp4";//;"rtp://239.255.0.1:5004/";
-    Uri streamUri;
-    private MediaPlayer mediaPlayer;
-    private SurfaceView surfaceView;
-    private SurfaceHolder surfaceHolder;
-
-    //VideoView
-    VideoView videoView;
-
     //WebView
     WebView webView;
 
@@ -136,100 +108,24 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         //inflate main activity
         setContentView(R.layout.activity_main);
 
-        //MediaPlayer
-        switch (STREAM_USING) {
-            case 0: {
-                //surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
-                surfaceHolder = surfaceView.getHolder();
-                surfaceHolder.setFixedSize(800, 480);
-                surfaceHolder.addCallback(this);
-                surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-                mediaPlayer = new MediaPlayer();
-
-                mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-                    @Override
-                    public boolean onError(MediaPlayer mp, int what, int extra) {
-                        if (what == MediaPlayer.MEDIA_ERROR_SERVER_DIED) {
-                            mediaPlayer.release();
-                            mediaPlayer = new MediaPlayer();
-                            //mediaPlayer.stop();
-                            play();
-                        }
-                        return false;
-                    }
-                });
-
-                mediaPlayer.setOnBufferingUpdateListener(new MediaPlayer.OnBufferingUpdateListener() {
-                    @Override
-                    public void onBufferingUpdate(MediaPlayer mp, int percent) {
-                        Toast.makeText(getApplicationContext(), "BUFF : " + percent, Toast.LENGTH_SHORT).show();
-                        if (!mediaPlayer.isPlaying()) {
-                            mediaPlayer.start();
-                        }
-                    }
-                });
-
-                //Intent i = new Intent(Intent.ACTION_GET_CONTENT);
-                //i.setType("video/*");
-                //startActivityForResult(i, 1234);
-                streamUri = Uri.parse(streamPath);
-                play();
-                break;
+        // WebView stream
+        webView = (WebView) findViewById(R.id.webView);
+        webView.loadUrl("http://192.168.1.1:9090/stream/"); // /stream/webrtc
+        webView.getSettings().setJavaScriptEnabled(true);
+        final String webViewJs = "(function() { " +
+                "var html = document.getElementsByTagName('*'); for (el in html)" +
+                "if (html.hasOwnProperty(el)) {" +
+                "    if(html[el].id != 'remote-video') {" +
+                "        html[el].remove();" +
+                "    }" +
+                "}})();";
+        webView.setWebViewClient(new WebViewClient(){
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                injectCSS();
+                super.onPageFinished(view, url);
             }
-            case 1: {
-                //videoView = (VideoView) findViewById(R.id.videoView);
-                videoView.setVideoURI(Uri.parse(streamPath));
-                MediaController mediaController = new MediaController(this);
-                mediaController.setAnchorView(videoView);
-                videoView.setMediaController(mediaController);
-                videoView.requestFocus();
-                try {
-                    videoView.start();
-                }
-                catch (SecurityException se) {
-                    Log.e("SE", se.getMessage());
-                    se.printStackTrace();
-                }
-                break;
-            }
-            case 2: {
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(streamPath));
-                startActivity(intent);
-                break;
-            }
-            case 3: {
-                webView = (WebView) findViewById(R.id.webView);
-                webView.loadUrl("http://192.168.1.1:9090/stream/"); // /stream/webrtc
-                webView.getSettings().setJavaScriptEnabled(true);
-                final String webViewJs = "(function() { " +
-                        "var html = document.getElementsByTagName('*'); for (el in html)" +
-                        "if (html.hasOwnProperty(el)) {" +
-                        "    if(html[el].id != 'remote-video') {" +
-                        "        html[el].remove();" +
-                        "    }" +
-                        "}})();";
-                webView.setWebViewClient(new WebViewClient(){
-                    @Override
-                    public void onPageFinished(WebView view, String url) {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
-                            //webView.evaluateJavascript(webViewJs, null);
-                            webView.evaluateJavascript("start();", null);
-                            webView.evaluateJavascript("fullscreen();", null);
-                        } else {
-                            //webView.loadUrl("javascript:" + webViewJs);
-                        }
-                        injectCSS();
-                        super.onPageFinished(view, url);
-                    }
-                });
-                break;
-            }
-            default: {
-                //Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(streamPath));
-                //startActivity(intent);
-            }
-        }
-
+        });
 
         //menu button asignment and onclick listener
         menuBtn = (Button) findViewById(R.id.menuBtn);
@@ -249,9 +145,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 }
             }
         });
-
-        //gameControllerDevicesIds = Controller.getGameControllerIds();
-        //Log.d("Controller IDs:", String.valueOf(gameControllerDevicesIds));
 
         device = Device.getInstance(this);
         signal = (ProgressBar) findViewById(R.id.signal);
@@ -317,8 +210,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                             messageStr = String.valueOf(Controller.roll + "" + Controller.pitch +
                                         Controller.yaw + Controller.throttle  + cmd);
                         } else {
-                            messageStr = String.valueOf((roll.getProgress() + 1000) + "" + (pitch.getProgress() + 1000) +
-                                    (yaw.getProgress() + 1000) + (throttle.getProgress() + 1000) + cmd);
+
                         }
                         //Log.d("SENT:", messageStr);
                         message = messageStr.getBytes();
@@ -339,94 +231,11 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 }
             }
         }).start();
-
-        throttle = (VerticalSeekBar) findViewById(R.id.throttleVerticalSeekBar);
-        throttle.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Log.d("throttle", String.valueOf(progress));
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
-
-        pitch = (VerticalSeekBar) findViewById(R.id.pitchVerticalSeekBar);
-        pitch.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Log.d("pitch", String.valueOf(progress));
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                pitch.setProgressAndThumb(500);
-            }
-        });
-
-        roll = (SeekBar) findViewById(R.id.rollSeekBar);
-        roll.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Log.d("roll", String.valueOf(progress));
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                seekBar.setProgress(seekBar.getMax() / 2);
-            }
-        });
-
-        yaw = (SeekBar) findViewById(R.id.yawSeekBar);
-        yaw.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Log.d("yaw", String.valueOf(progress));
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                seekBar.setProgress(seekBar.getMax() / 2);
-            }
-        });
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (mediaPlayer != null) {
-            //mediaPlayer.release();
-        }
-        if (webView != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                //webView.evaluateJavascript("stop();", null);
-            }
-            else {
-                //webView.loadUrl("javascript:stop();");
-            }
-        }
     }
 
     @Override
@@ -462,7 +271,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         @Override
         public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
             setSettings();
-            //Toast.makeText(MainActivity.this, String.valueOf(useController), Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, "Settings updated!", Toast.LENGTH_SHORT).show();
         }
     };
 
@@ -555,8 +364,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     public boolean dispatchGenericMotionEvent(MotionEvent event) {
         Log.d("Motion event:", event.toString());
         // Check that the event came from a game controller
-        //if (event.getAxisValue(MotionEvent.AXIS_RX) > -1) Log.d("Motion", event.getAxisValue(MotionEvent.AXIS_RX) + "");
-        //if (event.getAxisValue(MotionEvent.AXIS_RY) > -1) Log.d("Motion", event.getAxisValue(MotionEvent.AXIS_RY) + "");
         if ((event.getSource() & InputDevice.SOURCE_JOYSTICK) ==
                 InputDevice.SOURCE_JOYSTICK &&
                 event.getAction() == MotionEvent.ACTION_MOVE) {
@@ -578,59 +385,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         return super.onGenericMotionEvent(event);
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 1234) {
-            if (resultCode == Activity.RESULT_OK) {
-                streamUri = data.getData();
-                play();
-            }
-        }
-    }
-
-    @Override
-    public void surfaceCreated(SurfaceHolder holder) {
-        if (mediaPlayer != null) {
-            mediaPlayer.setDisplay(surfaceHolder);
-        }
-    }
-
-    @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-
-    }
-
-    @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
-
-    }
-
-    void play() {
-        try {
-            //final FileInputStream fis = new FileInputStream(streamPath);
-            mediaPlayer.stop();
-            mediaPlayer.reset();
-            mediaPlayer.setDataSource(getApplicationContext(), streamUri);
-            //mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-
-            mediaPlayer.prepareAsync();
-            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                @Override
-                public void onPrepared(MediaPlayer mp) {
-                    //mediaPlayer.reset();
-                    mediaPlayer.start();
-                }
-            });
-
-
-        } catch (SecurityException se) {
-            Log.e("SE", se.getMessage());
-            se.printStackTrace();
-        } catch (IOException ie) {
-            ie.printStackTrace();
-        }
-    }
     private void injectCSS() {
         try {
             InputStream inputStream = getAssets().open("style.css");

@@ -19,14 +19,13 @@ public class Controller {
     public static int throttle = 1000;
 
     final static boolean USE_RAW_THROTTLE = false;
-    final static int THTROTTLE_MULTIPLIER_UP = 2; // th increase rate
-    final static int THTROTTLE_MULTIPLIER_DOWN = 3; // th increase rate
-    final static int THROTTTLE_TIMER = 30; // milliseconds of repeating increase
+    final static int THROTTLE_MULTIPLIER_UP = 2; // th increase rate
+    final static int THROTTLE_MULTIPLIER_DOWN = 3; // th increase rate
+    final static int THROTTLE_TIMER = 30; // milliseconds of repeating increase
     private static long lastThrottleTimestamp = 0;
     private static float lastLtInput = 0; // Last left trigger input, used in thread to control TH
     private static float lastRtInput = 0;
     private static boolean isThUpdaterRunning = false; // only run update thread once
-
 
     final static int DPAD_UP       = 0;
     final static int DPAD_LEFT     = 1;
@@ -164,14 +163,15 @@ public class Controller {
                     MotionEvent.AXIS_RX, historyPos);
         }
 
-    /*
-        if (x != 0) Log.d("X", String.valueOf(x));
-        if (y != 0) Log.d("Y", String.valueOf(y));
-        if (z != 0)  Log.d("Z", String.valueOf(z));
-        if (rz != 0) Log.d("RZ", String.valueOf(rz));
-        if (rt != 0) Log.d("RT", String.valueOf(rt));
-        if (lt != 0) Log.d("LT", String.valueOf(lt));
-    */
+        //
+        if (false) { // Log all axes
+            if (x != 0) Log.d("X", String.valueOf(x));
+            if (y != 0) Log.d("Y", String.valueOf(y));
+            if (z != 0) Log.d("Z", String.valueOf(z));
+            if (rz != 0) Log.d("RZ", String.valueOf(rz));
+            if (rt != 0) Log.d("RT", String.valueOf(rt));
+            if (lt != 0) Log.d("LT", String.valueOf(lt));
+        }
 
         roll = convertToRCdata(z, false);
         pitch = convertToRCdata(rz, true);
@@ -196,9 +196,9 @@ public class Controller {
             @Override
             public void run() {
                 while (true) {
-                    if (System.currentTimeMillis() - lastThrottleTimestamp >= THROTTTLE_TIMER) {
-                        if (lastRtInput > 0) throttle += (lastRtInput + 1) * THTROTTLE_MULTIPLIER_UP;
-                        if (lastLtInput > 0) throttle -= (lastLtInput + 1) * THTROTTLE_MULTIPLIER_DOWN;
+                    if (System.currentTimeMillis() - lastThrottleTimestamp >= THROTTLE_TIMER) {
+                        if (lastRtInput > 0) throttle += (lastRtInput + 1) * THROTTLE_MULTIPLIER_UP;
+                        if (lastLtInput > 0) throttle -= (lastLtInput + 1) * THROTTLE_MULTIPLIER_DOWN;
                         if (throttle > 2000) {
                             throttle = 2000;
                         } else if (throttle < 1000) {
@@ -209,7 +209,7 @@ public class Controller {
                                 String.valueOf(yaw) + String.valueOf(throttle));
                     }
                     try {
-                        Thread.sleep(MainActivity.delayReadController);
+                        Thread.sleep(MainActivity.delayUpdateThrottle);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
