@@ -24,6 +24,7 @@ import android.view.WindowManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -89,6 +90,12 @@ public class MainActivity extends AppCompatActivity {
     //WebView
     WebView webView;
 
+    //JoyStick
+    LinearLayout jsLayoutLeft;
+    LinearLayout jsLayoutRight;
+    JoyStick jsLeft;
+    JoyStick jsRight;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -143,6 +150,118 @@ public class MainActivity extends AppCompatActivity {
                 if (status != TextToSpeech.ERROR) {
                     tts.setLanguage(Locale.ENGLISH);
                 }
+            }
+        });
+
+        jsLayoutLeft = (LinearLayout) findViewById(R.id.js_layout_left);
+        jsLeft = new JoyStick(getApplicationContext(), jsLayoutLeft, R.drawable.image_button);
+        jsLeft.setDefaults();
+        jsLayoutLeft.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                jsLeft.drawStick(event);
+                if (event.getAction() == MotionEvent.ACTION_DOWN
+                        || event.getAction() == MotionEvent.ACTION_MOVE) {
+
+                    Log.d("X : ", String.valueOf(jsLeft.getX()));
+                    Log.d("Y : ", String.valueOf(jsLeft.getY()));
+                    Log.d("Angle : ", String.valueOf(jsLeft.getAngle()));
+                    Log.d("Distance : ", String.valueOf(jsLeft.getDistance()));
+
+                    switch (jsLeft.get8Direction()) {
+                        case JoyStick.STICK_UP: {
+                            Log.d("JS LEFT", "Direction : Up");
+                            break;
+                        }
+                        case JoyStick.STICK_UP_RIGHT: {
+                            Log.d("JS LEFT", "Direction : Up Right");
+                            break;
+                        }
+                        case JoyStick.STICK_RIGHT: {
+                            Log.d("JS LEFT", "Direction : Right");
+                            break;
+                        }
+                        case JoyStick.STICK_DOWN_RIGHT: {
+                            Log.d("JS LEFT", "Direction : Down Right");
+                            break;
+                        }
+                        case JoyStick.STICK_DOWN: {
+                            Log.d("JS LEFT", "Direction : Down");
+                            break;
+                        }
+                        case JoyStick.STICK_DOWN_LEFT: {
+                            Log.d("JS LEFT", "Direction : Down Left");
+                            break;
+                        }
+                        case JoyStick.STICK_LEFT: {
+                            Log.d("JS LEFT", "Direction : Left");
+                            break;
+                        }
+                        case JoyStick.STICK_UP_LEFT: {
+                            Log.d("JS LEFT", "Direction : Up Left");
+                            break;
+                        }
+                    }
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    Log.d("JS LEFT", "ACTION UP");
+                }
+                return true;
+            }
+        });
+
+        jsLayoutRight = (LinearLayout) findViewById(R.id.js_layout_right);
+        jsRight = new JoyStick(getApplicationContext(), jsLayoutRight, R.drawable.image_button);
+        jsRight.setDefaults();
+        jsLayoutRight.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                jsRight.drawStick(event);
+                if (event.getAction() == MotionEvent.ACTION_DOWN
+                        || event.getAction() == MotionEvent.ACTION_MOVE) {
+
+                    Log.d("X : ", String.valueOf(jsRight.getX()));
+                    Log.d("Y : ", String.valueOf(jsRight.getY()));
+                    Log.d("Angle : ", String.valueOf(jsRight.getAngle()));
+                    Log.d("Distance : ", String.valueOf(jsRight.getDistance()));
+
+                    switch (jsRight.get8Direction()) {
+                        case JoyStick.STICK_UP: {
+                            Log.d("JS RIGHT", "Direction : Up");
+                            break;
+                        }
+                        case JoyStick.STICK_UP_RIGHT: {
+                            Log.d("JS RIGHT", "Direction : Up Right");
+                            break;
+                        }
+                        case JoyStick.STICK_RIGHT: {
+                            Log.d("JS RIGHT", "Direction : Right");
+                            break;
+                        }
+                        case JoyStick.STICK_DOWN_RIGHT: {
+                            Log.d("JS RIGHT", "Direction : Down Right");
+                            break;
+                        }
+                        case JoyStick.STICK_DOWN: {
+                            Log.d("JS RIGHT", "Direction : Down");
+                            break;
+                        }
+                        case JoyStick.STICK_DOWN_LEFT: {
+                            Log.d("JS RIGHT", "Direction : Down Left");
+                            break;
+                        }
+                        case JoyStick.STICK_LEFT: {
+                            Log.d("JS RIGHT", "Direction : Left");
+                            break;
+                        }
+                        case JoyStick.STICK_UP_LEFT: {
+                            Log.d("JS RIGHT", "Direction : Up Left");
+                            break;
+                        }
+                    }
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    Log.d("JS RIGHT", "ACTION UP");
+                }
+                return true;
             }
         });
 

@@ -92,6 +92,15 @@ public class JoyStick {
         }
     }
 
+    public void setDefaults(){
+        this.setStickSize(200, 200);
+        this.setLayoutSize(950, 950);
+        this.setLayoutAlpha(150);
+        this.setStickAlpha(100);
+        this.setOffset(100);
+        this.setMinimumDistance(15);
+    }
+
     public int[] getPosition() {
         if (distance > min_distance && touch_state) {
             return new int[]{position_x, position_y};
