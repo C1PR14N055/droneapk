@@ -28,7 +28,7 @@
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="30dp"
         android:layout_alignParentTop="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
@@ -42,9 +42,9 @@
             android:paddingRight="5dp">
 
             <ro.drone.ciprian.droneapp.CircleView
-                android:id="@+id/circleView"
-                android:layout_width="12dp"
-                android:layout_height="12dp"
+                android:id="@+id/conn_icon"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
                 android:layout_centerVertical="true" />
 
             <TextView
@@ -55,8 +55,8 @@
                 android:paddingLeft="5dp"
                 android:paddingRight="5dp"
                 android:layout_centerVertical="true"
-                android:layout_toRightOf="@+id/circleView"
-                android:layout_toEndOf="@+id/circleView"
+                android:layout_toRightOf="@+id/conn_icon"
+                android:layout_toEndOf="@+id/conn_icon"
                 android:textSize="12dp"
                 android:textColor="#ffffff" />
         </RelativeLayout>
@@ -68,39 +68,131 @@
             android:paddingRight="5dp">
 
             <ImageView
-                android:layout_width="14dp"
+                android:layout_width="16dp"
                 android:layout_height="match_parent"
-                android:id="@+id/imageView"
+                android:id="@+id/battery_icon"
+                android:src="@drawable/ic_battery_full_white_48dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="42%"
+                android:id="@+id/battery"
+                android:textSize="12dp"
+                android:textColor="#ffffff"
+                android:layout_centerVertical="true"
+                android:layout_toRightOf="@+id/battery_icon"
+                android:layout_toEndOf="@+id/battery_icon"
+                android:paddingLeft="5dp"
+                android:paddingRight="5dp" />
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="match_parent"
+                android:id="@+id/wifi_icon"
                 android:src="@drawable/ic_signal_wifi_off_white_48dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:text="0"
+                android:text="0%"
                 android:id="@+id/signal"
                 android:layout_alignParentTop="false"
-                android:layout_toEndOf="@+id/imageView"
-                android:layout_centerInParent="true"
-                android:layout_toRightOf="@+id/imageView"
+                android:layout_toEndOf="@+id/wifi_icon"
+                android:layout_toRightOf="@+id/wifi_icon"
                 android:textSize="12dp"
                 android:paddingLeft="5dp"
                 android:paddingRight="5dp"
-                android:textColor="#ffffff" />
+                android:textColor="#ffffff"
+                android:layout_centerVertical="true" />
         </RelativeLayout>
 
-        <ImageButton
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:id="@+id/menuBtn"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentEnd="true"
-            android:background="@null"
-            android:textSize="20pt"
-            android:height="20dp"
-            android:tint="#ffffff"
-            android:src="@drawable/abc_ic_menu_moreoverflow_mtrl_alpha" />
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="match_parent"
+                android:id="@+id/compas_icon"
+                android:src="@drawable/ic_send_white_48dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="90º"
+                android:textSize="12dp"
+                android:paddingLeft="5dp"
+                android:paddingRight="5dp"
+                android:id="@+id/compas"
+                android:layout_centerVertical="true"
+                android:layout_toRightOf="@+id/compas_icon"
+                android:layout_toEndOf="@+id/compas_icon"
+                android:textColor="#ffffff"
+                android:layout_alignParentTop="false" />
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:paddingRight="5dp"
+            android:paddingLeft="5dp">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="match_parent"
+                android:id="@+id/altitude_icon"
+                android:src="@drawable/ic_trending_up_white_48dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="0,3m"
+                android:id="@+id/textView"
+                android:textColor="#ffffff"
+                android:textSize="12dp"
+                android:layout_centerVertical="true"
+                android:layout_alignParentTop="false"
+                android:layout_toRightOf="@+id/altitude_icon"
+                android:layout_toEndOf="@+id/altitude_icon"
+                android:paddingLeft="5dp"
+                android:paddingRight="5dp" />
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp">
+
+            <ImageButton
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:id="@+id/menuBtn"
+                android:layout_alignParentTop="false"
+                android:layout_alignParentRight="true"
+                android:layout_alignParentEnd="false"
+                android:background="@null"
+                android:textSize="20pt"
+                android:height="20dp"
+                android:tint="#ffffff"
+                android:src="@drawable/abc_ic_menu_moreoverflow_mtrl_alpha"
+                android:layout_weight="0"
+                android:layout_centerVertical="true" />
+        </RelativeLayout>
 
     </LinearLayout>
 

@@ -7,7 +7,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
-import android.media.Image;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -24,12 +23,10 @@ import android.view.View;
 import android.view.WindowManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -142,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
                 public void onPageFinished(WebView view, String url) {
                     injectCSS();
                     super.onPageFinished(view, url);
-                    CircleView cv = (CircleView) findViewById(R.id.circleView);
+                    CircleView cv = (CircleView) findViewById(R.id.conn_icon);
                     cv.changeColor(0);
                     //cv.invalidate();
                 }
@@ -285,7 +282,7 @@ public class MainActivity extends AppCompatActivity {
 
         Runnable runnable = new Runnable() {
             int deviceSignal = 0;
-            ImageView wifi_icon = (ImageView) findViewById(R.id.imageView);
+            ImageView wifi_icon = (ImageView) findViewById(R.id.wifi_icon);
             @Override
             public void run() {
                 if (!device.isWifiOn() || !device.getWifiSSID().equals(wifiSSID)) return;
