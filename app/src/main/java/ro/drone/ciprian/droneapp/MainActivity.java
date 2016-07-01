@@ -26,6 +26,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.ProgressBar;
@@ -79,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
     TextView signal;
 
     // Settings
-    Button menuBtn;
+    ImageButton menuBtn;
     SharedPreferences prefs;
     String wifiSSID;
     boolean useController;
@@ -152,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //menu button asignment and onclick listener
-        menuBtn = (Button) findViewById(R.id.menuBtn);
+        menuBtn = (ImageButton) findViewById(R.id.menuBtn);
         menuBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
