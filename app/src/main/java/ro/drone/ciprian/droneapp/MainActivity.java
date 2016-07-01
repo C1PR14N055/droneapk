@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.media.Image;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -25,8 +26,10 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.InputStream;
@@ -39,6 +42,11 @@ public class MainActivity extends AppCompatActivity {
 
     // API level
     int apiLevel;
+
+    //colors
+    private static final String COLOR_RED = "#e74c3c";
+    private static final String COLOR_ORANGE = "#e67e22";
+    private static final String COLOR_GREEN = "#2ecc71";
 
     // networking stuff
     final String localPiIP = "192.168.1.1";
@@ -68,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
     Vibrator v;
 
     // wifi progress bar
-    ProgressBar signal;
+    TextView signal;
 
     // Settings
     Button menuBtn;
@@ -85,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
     final String WARNING_SIGNAL_LOST = "warning, wifi signal lost";
     final String WARNING_SIGNAL_LOW = "warning, wifi signal low";
     final String ENGAGING_AUTOLAND = "engaging autonomous landing";
+    final String WIFI_SIGNAL_LOW = "wifi signal low";
     final String WIFI_OFFLINE = "wifi offline";
 
     //WebView
@@ -116,15 +125,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         device = Device.getInstance(getApplicationContext());
-        signal = (ProgressBar) findViewById(R.id.signal);
+        signal = (TextView) findViewById(R.id.signal);
         handler = new Handler();
         v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
 
         // WebView stream
         webView = (WebView) findViewById(R.id.webView);
 
-        if (device.isInternetAvailable() && device.networkIsWifi()
-                && device.isWifiOn() && device.getWifiSSID().equals("XDRONE")) {
+        if (true || device.isInternetAvailable() && device.networkIsWifi()
+                && device.isWifiOn() && device.getWifiSSID().equals(wifiSSID)) {
             webView.loadUrl("http://192.168.1.1:9090/stream"); // /stream/webrtc
             webView.getSettings().setJavaScriptEnabled(true);
             webView.setWebViewClient(new WebViewClient() {
@@ -132,6 +141,9 @@ public class MainActivity extends AppCompatActivity {
                 public void onPageFinished(WebView view, String url) {
                     injectCSS();
                     super.onPageFinished(view, url);
+                    CircleView cv = (CircleView) findViewById(R.id.circleView);
+                    cv.changeColor(0);
+                    //cv.invalidate();
                 }
             });
         }
@@ -272,30 +284,28 @@ public class MainActivity extends AppCompatActivity {
 
         Runnable runnable = new Runnable() {
             int deviceSignal = 0;
+            ImageView wifi_icon = (ImageView) findViewById(R.id.imageView);
             @Override
             public void run() {
                 if (!device.isWifiOn() || !device.getWifiSSID().equals(wifiSSID)) return;
                 deviceSignal = device.getWifiSignalLevel();
                 if (deviceSignal >= 75) {
-                    signal.getProgressDrawable().setColorFilter(
-                            Color.rgb(46, 204, 113), android.graphics.PorterDuff.Mode.SRC_IN);
+                    wifi_icon.setColorFilter(Color.parseColor(COLOR_GREEN));
                 }
                 else if (deviceSignal >= 50) {
-                    signal.getProgressDrawable().setColorFilter(
-                            Color.rgb(241, 196, 15), android.graphics.PorterDuff.Mode.SRC_IN);
+                    wifi_icon.setColorFilter(Color.parseColor(COLOR_ORANGE));
                 }
                 else if (deviceSignal >= 25) {
-                    signal.getProgressDrawable().setColorFilter(
-                            Color.rgb(230, 126, 34), android.graphics.PorterDuff.Mode.SRC_IN);
+                    wifi_icon.setColorFilter(Color.parseColor(COLOR_RED));
                 }
                 else if (deviceSignal >= 0) {
-                    signal.getProgressDrawable().setColorFilter(
-                            Color.rgb(231, 76, 60), android.graphics.PorterDuff.Mode.SRC_IN);
+                    wifi_icon.setColorFilter(Color.parseColor(COLOR_ORANGE));
+                    wifi_icon.setImageResource(R.drawable.ic_signal_wifi_off_white_48dp);
                     vibrate();
-                    speak(ENGAGING_AUTOLAND);
+                    speak(WIFI_SIGNAL_LOW);
                 }
 
-                signal.setProgress(device.getWifiSignalLevel());
+                signal.setText(device.getWifiSignalLevel());
                 handler.postDelayed(this, 500);
             }
         };
