@@ -24,7 +24,7 @@ import android.view.WindowManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
-import android.widget.LinearLayout;
+import android.widget.FrameLayout;
 import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -91,8 +91,8 @@ public class MainActivity extends AppCompatActivity {
     WebView webView;
 
     //JoyStick
-    LinearLayout jsLayoutLeft;
-    LinearLayout jsLayoutRight;
+    FrameLayout jsLayoutLeft;
+    FrameLayout jsLayoutRight;
     JoyStick jsLeft;
     JoyStick jsRight;
 
@@ -115,24 +115,29 @@ public class MainActivity extends AppCompatActivity {
         //inflate main activity
         setContentView(R.layout.activity_main);
 
+        device = Device.getInstance(getApplicationContext());
+        signal = (ProgressBar) findViewById(R.id.signal);
+        handler = new Handler();
+        v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
+
         // WebView stream
         webView = (WebView) findViewById(R.id.webView);
-        webView.loadUrl("http://192.168.1.1:9090/stream/"); // /stream/webrtc
-        webView.getSettings().setJavaScriptEnabled(true);
-        final String webViewJs = "(function() { " +
-                "var html = document.getElementsByTagName('*'); for (el in html)" +
-                "if (html.hasOwnProperty(el)) {" +
-                "    if(html[el].id != 'remote-video') {" +
-                "        html[el].remove();" +
-                "    }" +
-                "}})();";
-        webView.setWebViewClient(new WebViewClient(){
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                injectCSS();
-                super.onPageFinished(view, url);
-            }
-        });
+
+        if (device.isInternetAvailable() && device.networkIsWifi()
+                && device.isWifiOn() && device.getWifiSSID().equals("XDRONE")) {
+            webView.loadUrl("http://192.168.1.1:9090/stream"); // /stream/webrtc
+            webView.getSettings().setJavaScriptEnabled(true);
+            webView.setWebViewClient(new WebViewClient() {
+                @Override
+                public void onPageFinished(WebView view, String url) {
+                    injectCSS();
+                    super.onPageFinished(view, url);
+                }
+            });
+        }
+        else {
+            webView.setVisibility(View.GONE);
+        }
 
         //menu button asignment and onclick listener
         menuBtn = (Button) findViewById(R.id.menuBtn);
@@ -153,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        jsLayoutLeft = (LinearLayout) findViewById(R.id.js_layout_left);
+        jsLayoutLeft = (FrameLayout) findViewById(R.id.js_layout_left);
         jsLeft = new JoyStick(getApplicationContext(), jsLayoutLeft, R.drawable.image_button);
         jsLeft.setDefaults();
         jsLayoutLeft.setOnTouchListener(new View.OnTouchListener() {
@@ -209,7 +214,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        jsLayoutRight = (LinearLayout) findViewById(R.id.js_layout_right);
+        jsLayoutRight = (FrameLayout) findViewById(R.id.js_layout_right);
         jsRight = new JoyStick(getApplicationContext(), jsLayoutRight, R.drawable.image_button);
         jsRight.setDefaults();
         jsLayoutRight.setOnTouchListener(new View.OnTouchListener() {
@@ -265,11 +270,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        device = Device.getInstance(this);
-        signal = (ProgressBar) findViewById(R.id.signal);
-        handler = new Handler();
-        v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
-
         Runnable runnable = new Runnable() {
             int deviceSignal = 0;
             @Override
@@ -296,21 +296,13 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 signal.setProgress(device.getWifiSignalLevel());
-                Log.d("SIGNAL:", String.valueOf(device.getWifiSignalLevel()));
-                handler.postDelayed(this, 1000);
+                handler.postDelayed(this, 500);
             }
         };
-        //handler.post(runnable);
-        if (!device.isWifiOn()) {
-            Toast.makeText(this, "Wifi is OFF!!", Toast.LENGTH_SHORT).show();
-            speak(WIFI_OFFLINE);
-        } else if (!device.getWifiSSID().equals(wifiSSID)) {
-            Toast.makeText(this, "Please connect to " + wifiSSID + " wifi!!", Toast.LENGTH_SHORT).show();
-        }
         runnable.run();
 
         // UDP THREAD
-        new Thread(new Runnable() {
+        Runnable runableUDP = new Runnable() {
             public void run() {
                 try {
                     DatagramSocket s = new DatagramSocket();
@@ -349,7 +341,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.e("err", ex.getMessage());
                 }
             }
-        }).start();
+        };
     }
 
     @Override

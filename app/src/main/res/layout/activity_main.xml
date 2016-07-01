@@ -35,8 +35,8 @@
 
         <ProgressBar
             style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:id="@+id/signal"
             android:progress="100"
             android:max="99"
@@ -46,19 +46,20 @@
             android:layout_toStartOf="@+id/menuBtn"
             android:layout_alignBottom="@+id/menuBtn"
             android:layout_alignParentTop="true"
-            android:layout_weight="1" />
+            android:layout_weight="100" />
 
         <Button
             style="?android:attr/buttonStyleSmall"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
             android:id="@+id/menuBtn"
             android:layout_alignParentTop="true"
             android:layout_alignParentRight="true"
             android:layout_alignParentEnd="true"
             android:background="@drawable/abc_ic_menu_moreoverflow_mtrl_alpha"
             android:textSize="20pt"
-            android:layout_weight="9" />
+            android:height="20dp"
+            android:layout_weight="1" />
 
     </LinearLayout>
 
@@ -68,22 +69,35 @@
         android:layout_height="fill_parent"
         android:layout_below="@+id/linearLayout">
 
-        <LinearLayout
-            android:orientation="horizontal"
+        <RelativeLayout
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
-            android:layout_gravity="center_vertical"
-            android:layout_weight="1"
-            android:id="@+id/js_layout_left"
-            android:background="@drawable/image_button_bg"></LinearLayout>
+            android:layout_gravity="bottom|left"
+            android:layout_weight="1">
 
-        <LinearLayout
-            android:orientation="horizontal"
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_centerVertical="true"
+                android:layout_centerHorizontal="true"
+                android:id="@+id/js_layout_left"
+                android:background="@drawable/image_button_bg"></FrameLayout>
+        </RelativeLayout>
+
+        <RelativeLayout
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
-            android:layout_weight="1"
-            android:id="@+id/js_layout_right"
-            android:background="@drawable/image_button_bg"></LinearLayout>
+            android:layout_gravity="bottom|right"
+            android:layout_weight="1">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/js_layout_right"
+                android:background="@drawable/image_button_bg"
+                android:layout_centerVertical="true"
+                android:layout_centerHorizontal="true"/>
+        </RelativeLayout>
     </LinearLayout>
 
 

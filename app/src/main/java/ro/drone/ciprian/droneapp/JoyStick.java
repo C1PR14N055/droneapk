@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -93,8 +94,8 @@ public class JoyStick {
     }
 
     public void setDefaults(){
-        this.setStickSize(200, 200);
-        this.setLayoutSize(950, 950);
+        this.setStickSize(150, 150);
+        this.setLayoutSize(600, 600);
         this.setLayoutAlpha(150);
         this.setStickAlpha(100);
         this.setOffset(100);
