@@ -2,8 +2,10 @@ package ro.drone.ciprian.droneapp;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
+import android.net.DhcpInfo;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
+import android.text.format.Formatter;
 
 /**
  * Created by ciprian on 4/9/16.
@@ -11,6 +13,7 @@ import android.net.wifi.WifiManager;
 public class Device {
 
     private static WifiManager wifiManager = null;
+    private static DhcpInfo dhcpInfo = null;
     private static ConnectivityManager connectivityManager = null;
     NetworkInfo networkInfo;
     private static final int WIFI_SIGNAL_LEVELS = 100;
@@ -18,6 +21,7 @@ public class Device {
 
     private Device(Context context) {
         wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        dhcpInfo = wifiManager.getDhcpInfo();
         connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         networkInfo = connectivityManager.getActiveNetworkInfo();
     }
@@ -31,6 +35,13 @@ public class Device {
 
     public boolean isWifiOn(){
         return wifiManager.isWifiEnabled();
+    }
+
+
+    @SuppressWarnings("deprecation")
+    // Deprecated for IPv6 only
+    public String getWifiGatewayIp() {
+        return Formatter.formatIpAddress(dhcpInfo.gateway);
     }
 
     public String getWifiSSID() {

@@ -17,6 +17,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Base64;
 import android.util.Log;
 import android.view.InputDevice;
+import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
@@ -41,24 +42,14 @@ public class MainActivity extends AppCompatActivity {
     // API level
     int apiLevel;
 
-    //colors
-    private static final String COLOR_RED = "#e74c3c";
-    private static final String COLOR_ORANGE = "#e67e22";
-    private static final String COLOR_GREEN = "#2ecc71";
-
     // networking stuff
     final String localPiIP = "192.168.1.1";
-    final int SERVER_PORT = 12345;
     //BufferedReader in = null;
     //PrintWriter out = null;
     String messageStr;
     boolean sendData = true;
 
-    // commands
-    final int CMD_ARM = 0;
-    final int CMD_FLY = 1;
-    final int CMD_DISARM = 2;
-    final int CMD_SHUTDOWN = 3;
+    // Flight commands
     int cmd = 1; // command to send
     long lastCmdTimestamp = 0;
     static final int delayResendCmd = 33;
@@ -73,11 +64,7 @@ public class MainActivity extends AppCompatActivity {
     //Vibrator
     Vibrator v;
 
-    // wifi progress bar
-    TextView signal;
-
     // Settings
-    ImageButton menuBtn;
     SharedPreferences prefs;
     String wifiSSID;
     boolean useController;
@@ -85,14 +72,42 @@ public class MainActivity extends AppCompatActivity {
     boolean enableSound;
     boolean overclockWIFI;
     boolean safeAutoLand;
+    boolean captureBackButton;
+    int portNumber;
+    int warningsDelay;
 
     //TTS
     TextToSpeech tts;
-    final String WARNING_SIGNAL_LOST = "warning, wifi signal lost";
-    final String WARNING_SIGNAL_LOW = "warning, wifi signal low";
-    final String ENGAGING_AUTOLAND = "engaging autonomous landing";
-    final String WIFI_SIGNAL_LOW = "wifi signal low";
-    final String WIFI_OFFLINE = "wifi offline";
+
+    // Header / Menu
+    // Connection Status
+    CircleView conn_icon;
+    TextView conn;
+
+    // Battery status
+    ImageView battery_icon;
+    TextView battery;
+
+    // Wifi signal status
+    ImageView wifi_icon;
+    TextView wifi;
+
+    // Compas / Heading
+    ImageView compas_icon;
+    TextView compas;
+
+    // Altitude
+    // TODO measure units, feet / meters
+    ImageView altitude_icon;
+    TextView altitude;
+
+    // Angles / inclination
+    TextView angX;
+    TextView angY;
+    TextView angZ;
+
+
+    ImageButton menuBtn;
 
     //WebView
     WebView webView;
@@ -112,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
         //screen stay on flag
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         //preferences
-        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        PreferenceManager.setDefaultValues(getApplicationContext(), R.xml.preferences, false);
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
         prefs.registerOnSharedPreferenceChangeListener(listener);
         //api level
@@ -123,25 +138,49 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         device = Device.getInstance(getApplicationContext());
-        signal = (TextView) findViewById(R.id.signal);
         handler = new Handler();
         v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
+
+        // Header menu init
+        // Connection Status
+        conn_icon = (CircleView) findViewById(R.id.conn_icon);
+        conn = (TextView) findViewById(R.id.conn);
+
+        // Battery status
+        battery_icon = (ImageView) findViewById(R.id.battery_icon);
+        battery = (TextView) findViewById(R.id.battery);
+
+        // Wifi signal
+        wifi_icon = (ImageView) findViewById(R.id.wifi_icon);
+        wifi = (TextView) findViewById(R.id.wifi);
+
+        // Compas / Heading
+        compas_icon = (ImageView) findViewById(R.id.compas_icon);
+        compas = (TextView) findViewById(R.id.compas);
+
+        // Altitude
+        altitude_icon = (ImageView) findViewById(R.id.altitude_icon);
+        altitude = (TextView) findViewById(R.id.altitude);
+
+        // Angles / Inclination
+        angX = (TextView) findViewById(R.id.angx);
+        angY = (TextView) findViewById(R.id.angy);
+        angZ = (TextView) findViewById(R.id.angz);
+
 
         // WebView stream
         webView = (WebView) findViewById(R.id.webView);
 
-        if (true || device.isInternetAvailable() && device.networkIsWifi()
+        // TODO If is webRTC start() then pause() onPause()
+        if (device.isInternetAvailable() && device.networkIsWifi()
                 && device.isWifiOn() && device.getWifiSSID().equals(wifiSSID)) {
             webView.loadUrl("http://192.168.1.1:9090/stream"); // /stream/webrtc
             webView.getSettings().setJavaScriptEnabled(true);
             webView.setWebViewClient(new WebViewClient() {
                 @Override
                 public void onPageFinished(WebView view, String url) {
-                    injectCSS();
+                    //injectCSS();
                     super.onPageFinished(view, url);
-                    CircleView cv = (CircleView) findViewById(R.id.conn_icon);
-                    cv.changeColor(0);
-                    //cv.invalidate();
                 }
             });
         }
@@ -282,28 +321,27 @@ public class MainActivity extends AppCompatActivity {
 
         Runnable runnable = new Runnable() {
             int deviceSignal = 0;
-            ImageView wifi_icon = (ImageView) findViewById(R.id.wifi_icon);
             @Override
             public void run() {
                 if (!device.isWifiOn() || !device.getWifiSSID().equals(wifiSSID)) return;
                 deviceSignal = device.getWifiSignalLevel();
                 if (deviceSignal >= 75) {
-                    wifi_icon.setColorFilter(Color.parseColor(COLOR_GREEN));
+                    wifi_icon.setColorFilter(Color.parseColor(Constants.COLOR_GREEN));
                 }
                 else if (deviceSignal >= 50) {
-                    wifi_icon.setColorFilter(Color.parseColor(COLOR_ORANGE));
+                    wifi_icon.setColorFilter(Color.parseColor(Constants.COLOR_ORANGE));
                 }
                 else if (deviceSignal >= 25) {
-                    wifi_icon.setColorFilter(Color.parseColor(COLOR_RED));
+                    wifi_icon.setColorFilter(Color.parseColor(Constants.COLOR_RED));
                 }
                 else if (deviceSignal >= 0) {
-                    wifi_icon.setColorFilter(Color.parseColor(COLOR_ORANGE));
+                    wifi_icon.setColorFilter(Color.parseColor(Constants.COLOR_RED));
                     wifi_icon.setImageResource(R.drawable.ic_signal_wifi_off_white_48dp);
                     vibrate();
-                    speak(WIFI_SIGNAL_LOW);
+                    speak(getString(R.string.WIFI_SIGNAL_LOW));
                 }
 
-                signal.setText(device.getWifiSignalLevel());
+                wifi.setText(device.getWifiSignalLevel());
                 handler.postDelayed(this, 500);
             }
         };
@@ -333,13 +371,13 @@ public class MainActivity extends AppCompatActivity {
                         }
                         //Log.d("SENT:", messageStr);
                         message = messageStr.getBytes();
-                        p = new DatagramPacket(message, messageStr.length(), local, SERVER_PORT);
+                        p = new DatagramPacket(message, messageStr.length(), local, portNumber);
                         s.send(p);
                         //out.write(messageStr);
                         //out.flush();
                         //s.send(p);
                         Thread.sleep(delayResendCmd);
-                        if (cmd != CMD_FLY && System.currentTimeMillis() - lastCmdTimestamp > 500) {
+                        if (cmd != Constants.CMD_FLY && System.currentTimeMillis() - lastCmdTimestamp > 500) {
                             //cmd = CMD_FLY; // ONLY SEND COMMANDS ONCE
                             //lastCmdTimestamp = System.currentTimeMillis();
                             Log.d("PASS", String.valueOf(cmd));
@@ -373,8 +411,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         //super.onBackPressed();
-        Toast.makeText(MainActivity.this, "NO", Toast.LENGTH_SHORT).show();
-        //TODO options for this, with alert, no exiting, exiting
+        if (captureBackButton) {
+            Toast.makeText(MainActivity.this, "Back button captured!", Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void setSettings() {
@@ -384,6 +423,9 @@ public class MainActivity extends AppCompatActivity {
         enableSound = prefs.getBoolean("enableSound", true);
         overclockWIFI = prefs.getBoolean("overclockWIFI", false);
         safeAutoLand = prefs.getBoolean("safeAutoLand", true);
+        captureBackButton = prefs.getBoolean("captureBackButton", true);
+        portNumber = Integer.valueOf(prefs.getString("portNumber", "12345"));
+        warningsDelay = Integer.valueOf(prefs.getString("warningsDelay", "7000"));
     }
 
     SharedPreferences.OnSharedPreferenceChangeListener listener = new SharedPreferences.OnSharedPreferenceChangeListener() {
@@ -417,17 +459,17 @@ public class MainActivity extends AppCompatActivity {
                                 lastCmdTimestamp = System.currentTimeMillis();
                                 switch (itemId) {
                                     case R.id.arm: {
-                                        cmd = CMD_ARM;
+                                        cmd = Constants.CMD_ARM;
                                         Toast.makeText(MainActivity.this, "Board Armed", Toast.LENGTH_SHORT).show();
                                         break;
                                     }
                                     case R.id.disarm: {
-                                        cmd = CMD_DISARM;
+                                        cmd = Constants.CMD_DISARM;
                                         Toast.makeText(MainActivity.this, "Board Disarmed", Toast.LENGTH_SHORT).show();
                                         break;
                                     }
                                     case R.id.shutdown: {
-                                        cmd = CMD_SHUTDOWN;
+                                        cmd = Constants.CMD_SHUTDOWN;
                                         Toast.makeText(MainActivity.this, "Shutting Down Pi", Toast.LENGTH_SHORT).show();
                                         break;
                                     }
@@ -452,7 +494,7 @@ public class MainActivity extends AppCompatActivity {
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     private void speak(String text) {
         if (!enableSound) return;
-        if (!lastWarning.equals(text) || System.currentTimeMillis() - lastWarningTimeStamp > 7000) {
+        if (!lastWarning.equals(text) || System.currentTimeMillis() - lastWarningTimeStamp > warningsDelay) {
             lastWarning = text;
             lastWarningTimeStamp = System.currentTimeMillis();
             if (apiLevel >= Build.VERSION_CODES.M) {
@@ -467,17 +509,16 @@ public class MainActivity extends AppCompatActivity {
         if (enableVibration) {
             v.vibrate(100);
         }
-        //TODO vibrate intensity
     }
 
-//    @Override
-//    public boolean dispatchKeyEvent(KeyEvent event) {
-//        if ((event.getSource() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD) {
-//            Log.d("INPUT KEYCODE", String.valueOf(event.getKeyCode()) + " FROM: " + event.getDeviceId());
-//            return true; // if handled
-//        }
-//        return super.dispatchKeyEvent(event);
-//    }
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if ((event.getSource() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD) {
+            Log.d("INPUT KEYCODE", String.valueOf(event.getKeyCode()) + " FROM: " + event.getDeviceId());
+            return true; // if handled
+        }
+        return super.dispatchKeyEvent(event);
+    }
 
     @Override
     public boolean dispatchGenericMotionEvent(MotionEvent event) {

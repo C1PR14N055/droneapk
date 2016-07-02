@@ -8,10 +8,18 @@
             android:summary="Drone's WI-FI name"
             android:defaultValue="XDRONE" />
 
+        <EditTextPreference android:key="portNumber"
+            android:title="Port"
+            android:summary="Port number to use"
+            android:inputType="number"
+            android:numeric="integer"
+            android:defaultValue="12345"/>
+
         <CheckBoxPreference android:key="overclockWIFI"
             android:title="Overclock WIFI Adapter"
             android:summary="Overclock WIFI for better range, Pi will restart (WARNING: unstable)"
-            android:defaultValue="false" />
+            android:defaultValue="false"
+            android:enabled="false"/>
 
     </PreferenceCategory>
 
@@ -26,6 +34,11 @@
 
     <PreferenceCategory android:title="Device settings">
 
+        <CheckBoxPreference android:key="captureBackButton"
+            android:title="Capture back button"
+            android:summary="Prevent accidental exit by disabling the back button"
+            android:defaultValue="true" />
+
         <CheckBoxPreference android:key="enableSound"
             android:title="Sound"
             android:summary="Sound alert when low battery/signal"
@@ -36,6 +49,7 @@
             android:summary="Delay sound warnings (in milliseconds)"
             android:dependency="enableSound"
             android:defaultValue="7000"
+            android:numeric="integer"
             android:inputType="number" />
 
         <CheckBoxPreference android:key="enableVibration"
@@ -50,7 +64,8 @@
         <CheckBoxPreference android:key="safeAutoLand"
             android:title="Safe Auto Landing"
             android:summary="Safely land in case of signal lost/failure"
-            android:defaultValue="true" />
+            android:defaultValue="true"
+            android:enabled="false" />
 
     </PreferenceCategory>
 </PreferenceScreen>
