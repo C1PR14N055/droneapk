@@ -102,8 +102,8 @@ public class JoyStick {
         this.setMinimumDistance(dpToPx(15));
     }
     
-    private float dpToPx(float dipValue) {
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dipValue, mContext.getResources().getDisplayMetrics());
+    private int dpToPx(float dipValue) {
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dipValue, mContext.getResources().getDisplayMetrics());
     }
 
     public int[] getPosition() {
