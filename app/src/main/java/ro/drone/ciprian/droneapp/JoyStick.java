@@ -94,12 +94,16 @@ public class JoyStick {
     }
 
     public void setDefaults(){
-        this.setStickSize(150, 150);
-        this.setLayoutSize(600, 600);
+        this.setStickSize(dpToPx(150), dpToPx(150));
+        this.setLayoutSize(dpToPx(600), dpToPx(600));
         this.setLayoutAlpha(150);
         this.setStickAlpha(100);
-        this.setOffset(100);
-        this.setMinimumDistance(15);
+        this.setOffset(dpToPx(100));
+        this.setMinimumDistance(dpToPx(15));
+    }
+    
+    private float dpToPx(float dipValue) {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dipValue, mContext.getResources().getDisplayMetrics());
     }
 
     public int[] getPosition() {
