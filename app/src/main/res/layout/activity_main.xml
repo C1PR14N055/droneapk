@@ -245,7 +245,8 @@
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:layout_below="@+id/linearLayout"
-        android:background="#333333">
+        android:background="#333333"
+        android:id="@+id/jsLayout">
 
         <RelativeLayout
             android:layout_width="fill_parent"
