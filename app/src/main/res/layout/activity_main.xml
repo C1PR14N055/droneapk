@@ -254,8 +254,8 @@
             android:layout_weight="1">
 
             <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_centerVertical="true"
                 android:layout_centerHorizontal="true"
                 android:id="@+id/js_layout_left"
@@ -269,8 +269,8 @@
             android:layout_weight="1">
 
             <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:id="@+id/js_layout_right"
                 android:background="@drawable/image_button_bg"
                 android:layout_centerVertical="true"

@@ -41,7 +41,9 @@ import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Locale;
 
@@ -51,17 +53,15 @@ public class MainActivity extends AppCompatActivity {
     int apiLevel;
 
     // networking stuff
-    final String localPiIP = "192.168.1.1";
-    //BufferedReader in = null;
-    //PrintWriter out = null;
-    String messageStr;
-    boolean sendData = true;
+    private boolean tcpIsConnected = true;
+    private String messageStr;
+    private boolean sendData = true;
 
     // Flight commands
-    int cmd = 1; // command to send
-    long lastCmdTimestamp = 0;
-    static final int delayResendCmd = 33;
-    static final int delayUpdateThrottle = 33;
+    private int cmd = 1; // command to send
+    private long lastCmdTimestamp = 0;
+    private static final int delayResendCmd = 33;
+    private static final int delayUpdateThrottle = 33;
 
     // Device singleton instance
     Device device;
@@ -354,66 +354,12 @@ public class MainActivity extends AppCompatActivity {
         };
         runnable.run();
 
-        // UDP THREAD
-        Thread runableUDP = new Thread() {
-            public void run() {
+        tcpClient();
+        updThread();
 
-                try {
-                    InetAddress serverAddress = InetAddress.getByName("10.0.3.2");
-                    Socket socket = new Socket(serverAddress, 21);
-                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    PrintWriter out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
-
-                } catch (UnknownHostException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-
-                /*
-                try {
-                    DatagramSocket s = new DatagramSocket();
-                    InetAddress local = InetAddress.getByName(localPiIP);
-                    // Raspberry Pi Hotspot Address
-                    //InetAddress serverAddress = InetAddress.getByName(localPiIP);
-                    //Socket socket = new Socket(serverAddress, SERVER_PORT);
-                    //in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    //out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
-                    //Log.d("TEST", String.valueOf(socket.getInputStream()));
-                    // TODO IP:PORT SETTINGS
-                    byte[] message;
-                    DatagramPacket p;
-                    while (sendData) {
-                        if (useController) {
-                            messageStr = String.valueOf(Controller.roll + "" + Controller.pitch +
-                                        Controller.yaw + Controller.throttle  + cmd);
-                        } else {
-
-                        }
-                        //Log.d("SENT:", messageStr);
-                        message = messageStr.getBytes();
-                        p = new DatagramPacket(message, messageStr.length(), local, portNumber);
-                        s.send(p);
-                        //out.write(messageStr);
-                        //out.flush();
-                        //s.send(p);
-                        Thread.sleep(delayResendCmd);
-                        if (cmd != Constants.CMD_FLY && System.currentTimeMillis() - lastCmdTimestamp > 500) {
-                            //cmd = CMD_FLY; // ONLY SEND COMMANDS ONCE
-                            //lastCmdTimestamp = System.currentTimeMillis();
-                            Log.d("PASS", String.valueOf(cmd));
-                        }
-                    }
-                } catch (Exception ex) {
-                    Log.e("err", ex.getMessage());
-                }
-                */
-            }
-        };
-
-        runableUDP.start();
     }
+
+
 
     @Override
     protected void onStop() {
@@ -588,5 +534,102 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void tcpClient() {
+        // TCP THREAD
+        Thread tcpThread = new Thread() {
+            public void run() {
+
+                Socket socket = null;
+                tcpIsConnected = false;
+
+                while(true) {
+                    try {
+                        if (socket != null && socket.isConnected()) {
+                            tcpIsConnected = true;
+                            Log.d("TCP", "CONN");
+                            Thread.sleep(2000);
+                        } else {
+                            tcpIsConnected = false;
+                            socket = new Socket(); // DO NOT REUSE SOCKET IF CONN FAILED!
+                            socket.connect(new InetSocketAddress("10.0.2.2", 21), 2000);
+                            Log.d("TCP", "trying");
+                        }
+                    } catch (SocketTimeoutException sex) { // haha, sex
+                        //sex.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                /*
+                Log.d("TCP", "connected");
+                BufferedReader in = null;
+                PrintWriter out = null;
+                try {
+                    in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    Log.d("READ", in.read() + "");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } */
+            }
+        };
+        tcpThread.start();
+    }
+
+    private void updThread() {
+        Thread udp = new Thread() {
+            public void run() {
+
+                while (true) {
+                    if (tcpIsConnected) {
+                        Log.d("UPD", "SENDING DATA");
+                    } else {
+                        Log.d("UPD", "WAITING FOR TCP");
+                    }
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                /*
+                try {
+                    DatagramSocket s = new DatagramSocket();
+                    InetAddress local = InetAddress.getByName("10.0.2.2");
+                    // TODO IP:PORT SETTINGS
+                    byte[] message;
+                    DatagramPacket p;
+                    while (sendData) {
+                        if (useController) {
+                            messageStr = String.valueOf(Controller.roll + "" + Controller.pitch +
+                                    Controller.yaw + Controller.throttle  + cmd);
+                        } else {
+
+                        }
+                        //Log.d("SENT:", messageStr);
+                        message = messageStr.getBytes();
+                        p = new DatagramPacket(message, messageStr.length(), local, portNumber);
+                        s.send(p);
+                        Thread.sleep(delayResendCmd);
+                        if (cmd != Constants.CMD_FLY && System.currentTimeMillis() - lastCmdTimestamp > 500) {
+                            //cmd = CMD_FLY; // ONLY SEND COMMANDS ONCE
+                            //lastCmdTimestamp = System.currentTimeMillis();
+                            Log.d("PASS", String.valueOf(cmd));
+                        }
+                    }
+                } catch (Exception ex) {
+                    Log.e("err", ex.getMessage());
+                } */
+            }
+        };
+        udp.start();
     }
 }

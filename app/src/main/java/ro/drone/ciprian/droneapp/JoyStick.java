@@ -95,11 +95,11 @@ public class JoyStick {
     }
 
     public void setDefaults(){
-        this.setStickSize(dpToPx(150), dpToPx(150));
-        this.setLayoutSize(dpToPx(600), dpToPx(600));
+        this.setStickSize(dpToPx(50), dpToPx(50));
+        this.setLayoutSize(dpToPx(250), dpToPx(250));
         this.setLayoutAlpha(150);
         this.setStickAlpha(100);
-        this.setOffset(dpToPx(100));
+        this.setOffset(dpToPx(25));
         this.setMinimumDistance(dpToPx(15));
     }
     

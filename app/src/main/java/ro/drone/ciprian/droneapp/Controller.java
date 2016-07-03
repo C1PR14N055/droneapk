@@ -209,7 +209,7 @@ public class Controller {
                                 String.valueOf(yaw) + String.valueOf(throttle));
                     }
                     try {
-                        Thread.sleep(MainActivity.delayUpdateThrottle);
+                        Thread.sleep(Constants.DELAY_UPDATE_THROTTLE);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
