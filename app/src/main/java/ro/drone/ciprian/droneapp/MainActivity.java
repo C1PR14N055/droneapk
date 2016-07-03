@@ -344,7 +344,6 @@ public class MainActivity extends AppCompatActivity {
                 }
                 else if (deviceSignal >= 0) {
                     wifi_icon.setColorFilter(Color.parseColor(Constants.COLOR_RED));
-                    wifi_icon.setImageResource(R.drawable.ic_signal_wifi_off_white_48dp);
                     vibrate();
                     speak(getString(R.string.WIFI_SIGNAL_LOW));
                 }
