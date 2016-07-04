@@ -11,8 +11,13 @@
         android:title="Disarm MultiWii" />
 
     <item
+        android:id="@+id/reboot"
+        android:title="Reboot Pi" />
+
+    <item
         android:id="@+id/shutdown"
         android:title="Shutdown Pi" />
+
 
     <item
         android:id="@+id/settings"

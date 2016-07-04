@@ -59,6 +59,7 @@ public class CircleView extends View {
                 break;
             }
         }
+        this.invalidate();
     }
 
     private void setOnMeasureCallback() {

@@ -2,12 +2,15 @@ package ro.drone.ciprian.droneapp;
 
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -32,6 +35,9 @@ import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -68,7 +74,6 @@ public class MainActivity extends AppCompatActivity {
 
     // Flight status
     int conn_status = -1;
-    int batteryStatus = 26;
     int heading = 0;
     int alt = 0;
     int angle_x = 0;
@@ -143,6 +148,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         initAll();
+        updateBatteryStatus(); // broadcast recv
         openWebView();
         updateUI();
         tcpClient();
@@ -237,6 +243,11 @@ public class MainActivity extends AppCompatActivity {
                                         Toast.makeText(MainActivity.this, "Board Disarmed", Toast.LENGTH_SHORT).show();
                                         break;
                                     }
+                                    case R.id.reboot: {
+                                        cmd = Constants.CMD_REBOOT;
+                                        Toast.makeText(MainActivity.this, "Shutting Down Pi", Toast.LENGTH_SHORT).show();
+                                        break;
+                                    }
                                     case R.id.shutdown: {
                                         cmd = Constants.CMD_SHUTDOWN;
                                         Toast.makeText(MainActivity.this, "Shutting Down Pi", Toast.LENGTH_SHORT).show();
@@ -246,6 +257,7 @@ public class MainActivity extends AppCompatActivity {
                                         System.exit(0);
                                     }
                                 }
+                                Log.d("CMD", "" + cmd);
                             }
                         })
                         .setNegativeButton("No", null)
@@ -342,6 +354,7 @@ public class MainActivity extends AppCompatActivity {
 
                 Socket socket = null;
                 tcpIsConnected = false;
+                JSONObject jo = null;
 
                 while(true) {
 
@@ -350,33 +363,34 @@ public class MainActivity extends AppCompatActivity {
                                 && in != null && out != null) {
 
                             String msg = in.readLine();
-                            if (msg != null)
-                                Log.d("JSON", msg);
-                            //out.write("1");
-                           // out.flush();
+                            if (msg != null && !msg.equals("---")) {
+                                jo = new JSONObject(msg);
+                                heading = (int) jo.getDouble("heading");
+                                angle_x = (int) jo.getDouble("angx");
+                                angle_y = (int) jo.getDouble("angy");
+                                angle_z = 0;
+                            }
 
-
+                            out.write(String.valueOf(cmd));
+                            out.flush();
 
                             Thread.sleep(500);
 
-
-                            //tcpIsConnected = true;
-                            alt = 10;
-                            heading = 203;
-                            batteryStatus = 42;
-                            angle_x = 10;
-                            angle_y = 11;
-                            angle_z = 12;
+                            tcpIsConnected = true;
+                            conn_status = 1;
+                            alt = 1; // not set yet
 
 
-                            if (cmd != Constants.CMD_FLY) {
+                            if (cmd != Constants.CMD_FLY && System.currentTimeMillis() > lastCmdTimestamp + 1000) {
                                 cmd = Constants.CMD_FLY; // ONLY SEND COMMANDS ONCE
+                                lastCmdTimestamp = System.currentTimeMillis();
                                 Log.d("CMD", String.valueOf(cmd));
                             }
                         } else {
+                            conn_status = 0;
                             tcpIsConnected = false;
                             socket = new Socket(); // DO NOT REUSE SOCKET IF CONN FAILED!
-                            socket.connect(new InetSocketAddress("10.0.2.2", portNumber), 2000);
+                            socket.connect(new InetSocketAddress("192.168.1.1", portNumber), 2000);
                             try {
                                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                                 out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
@@ -387,11 +401,18 @@ public class MainActivity extends AppCompatActivity {
                         }
                     } catch (SocketTimeoutException sex) { // haha, sex
                         //sex.printStackTrace();
-
+                        conn_status = -1;
                     } catch (IOException e) {
                         e.printStackTrace();
-
+                        try {
+                            Thread.sleep(2000);
+                            conn_status = -1;
+                        } catch (InterruptedException e1) {
+                            e1.printStackTrace();
+                        }
                     } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (JSONException e) {
                         e.printStackTrace();
                     }
 
@@ -418,11 +439,11 @@ public class MainActivity extends AppCompatActivity {
                             while (sendData) {
                                 if (useController) {
                                     messageStr = String.valueOf(Controller.roll + "" + Controller.pitch +
-                                            Controller.yaw + Controller.throttle  + cmd);
+                                            Controller.yaw + Controller.throttle);
                                 } else {
 
                                 }
-                                Log.d("SENT:", messageStr);
+                                //Log.d("SENT:", messageStr);
                                 message = messageStr.getBytes();
                                 p = new DatagramPacket(message, messageStr.length(), local, portNumber);
                                 s.send(p);
@@ -488,9 +509,9 @@ public class MainActivity extends AppCompatActivity {
 
                 wifi.setText(device.getWifiSignalLevel() + "%");
 
-                updateAltitude(alt);
+                updateConnStatus(conn_status);
+                //updateAltitude(alt);
                 updateCompas(heading);
-                updateBatteryStatus(batteryStatus);
                 updateAngles(angle_x, angle_y, angle_z);
 
                 handler.postDelayed(this, 500);
@@ -499,21 +520,36 @@ public class MainActivity extends AppCompatActivity {
         runnable.run();
     }
 
-    private void updateBatteryStatus(int percent) {
+    private void updateBatteryStatus() {
 
-        battery.setText(percent + "%");
+        BroadcastReceiver batteryLevelReceiver = new BroadcastReceiver() {
+            public void onReceive(Context context, Intent intent) {
+                context.unregisterReceiver(this);
+                int rawLevel = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+                int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+                int percent = -1;
+                if (rawLevel >= 0 && scale > 0) {
+                    percent = (rawLevel * 100) / scale;
+                }
+                battery.setText(percent + "%");
 
-        if (percent >= 75) {
-            battery_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_GREEN));
-        } else if (percent >= 50) {
-            battery_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_YELLOW));
-        } else if (percent >= 25) {
-            battery_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_ORANGE));
-        } else if (percent >= 0) {
-            battery_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_RED));
-            vibrate();
-            speak(getString(R.string.WARNING_BATTERY_LOW));
-        }
+                if (percent >= 75) {
+                    battery_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_GREEN));
+                } else if (percent >= 50) {
+                    battery_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_YELLOW));
+                } else if (percent >= 25) {
+                    battery_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_ORANGE));
+                } else if (percent >= 0) {
+                    battery_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_RED));
+                    vibrate();
+                    speak(getString(R.string.WARNING_BATTERY_LOW));
+                }
+            }
+        };
+        IntentFilter batteryLevelFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        registerReceiver(batteryLevelReceiver, batteryLevelFilter);
+
+
     }
 
     private void updateCompas(int heading) {
@@ -653,7 +689,7 @@ public class MainActivity extends AppCompatActivity {
                 && device.isWifiOn() && device.getWifiSSID().equals(wifiSSID)) {
 
             webView.setVisibility(View.VISIBLE);
-            //webView.loadUrl("http://192.168.1.1:9090/stream"); // /stream/webrtc
+            webView.loadUrl("http://192.168.1.1:9090/stream"); // /stream/webrtc
             webView.getSettings().setJavaScriptEnabled(true);
             webView.setWebViewClient(new WebViewClient() {
                 @Override
