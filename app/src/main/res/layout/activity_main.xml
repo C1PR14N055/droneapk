@@ -33,7 +33,9 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:id="@+id/linearLayout"
-        android:background="#333333">
+        android:background="#333333"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp">
 
         <RelativeLayout
             android:layout_width="wrap_content"
@@ -132,7 +134,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceSmall"
-                android:text="90º"
+                android:text="0º"
                 android:textSize="12dp"
                 android:paddingLeft="5dp"
                 android:paddingRight="5dp"

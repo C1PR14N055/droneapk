@@ -21,9 +21,11 @@ public class CircleView extends View {
 
     private final Paint drawPaint;
     private float size;
+    private Context mContext;
 
     public CircleView(final Context context, final AttributeSet attrs) {
         super(context, attrs);
+        mContext = context;
         drawPaint = new Paint();
         drawPaint.setColor(Color.parseColor(COLOR_RED));
         drawPaint.setAntiAlias(true);
@@ -37,27 +39,26 @@ public class CircleView extends View {
     }
 
     /**
-     * @param color
+     * @param status
      * -1 = red
      * 0 = orange
      * 1 = green
      */
-    public void changeColor(int color) {
-        switch (color) {
+    public void setColor(int status) {
+        switch (status) {
             case -1: {
-                drawPaint.setColor(Color.parseColor(COLOR_RED));
+                drawPaint.setColor(mContext.getResources().getColor(R.color.FLAT_RED));
                 break;
             }
             case 0: {
-                drawPaint.setColor(Color.parseColor(COLOR_ORANGE));
+                drawPaint.setColor(mContext.getResources().getColor(R.color.FLAT_ORANGE));
                 break;
             }
             case 1: {
-                drawPaint.setColor(Color.parseColor(COLOR_GREEN));
+                drawPaint.setColor(mContext.getResources().getColor(R.color.FLAT_GREEN));
                 break;
             }
         }
-        this.invalidate();
     }
 
     private void setOnMeasureCallback() {

@@ -2,8 +2,7 @@
     <string name="app_name">DroneApp</string>
 
     <!-- TTS STRINGS -->
-    <string name="WARNING_SIGNAL_LOST">warning, wifi signal lost</string>
-    <string name="WARNING_SIGNAL_LOW">warning, wifi signal low</string>
+    <string name="WARNING_BATTERY_LOW">warning, drone battery low</string>
     <string name="ENGAGING_AUTOLAND">engaging autonomous landing</string>
     <string name="WIFI_SIGNAL_LOW">wifi signal low</string>
     <string name="WIFI_OFFLINE">wifi offline</string>

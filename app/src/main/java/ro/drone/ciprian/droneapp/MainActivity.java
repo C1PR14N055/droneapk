@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -41,6 +42,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -52,6 +54,8 @@ public class MainActivity extends AppCompatActivity {
     int apiLevel;
 
     // networking stuff
+    BufferedReader in = null;
+    PrintWriter out = null;
     private boolean tcpIsConnected = true;
     private String messageStr;
     private boolean sendData = true;
@@ -61,6 +65,15 @@ public class MainActivity extends AppCompatActivity {
     private long lastCmdTimestamp = 0;
     private static final int delayResendCmd = 33;
     private static final int delayUpdateThrottle = 33;
+
+    // Flight status
+    int conn_status = -1;
+    int batteryStatus = 26;
+    int heading = 0;
+    int alt = 0;
+    int angle_x = 0;
+    int angle_y = 0;
+    int angle_z = 0;
 
     // Device singleton instance
     Device device;
@@ -104,7 +117,6 @@ public class MainActivity extends AppCompatActivity {
     TextView compas;
 
     // Altitude
-    // TODO measure units, feet / meters
     ImageView altitude_icon;
     TextView altitude;
 
@@ -132,10 +144,11 @@ public class MainActivity extends AppCompatActivity {
 
         initAll();
         openWebView();
-        updateWifiSignal();
+        updateUI();
         tcpClient();
         updThread();
         handleJoysticks();
+        updateCompas(107);
     }
 
     @Override
@@ -322,6 +335,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void tcpClient() {
+
         // TCP THREAD
         Thread tcpThread = new Thread() {
             public void run() {
@@ -330,40 +344,60 @@ public class MainActivity extends AppCompatActivity {
                 tcpIsConnected = false;
 
                 while(true) {
+
                     try {
-                        if (socket != null && socket.isConnected()) {
-                            tcpIsConnected = true;
-                            Log.d("TCP", "CONN");
-                            Thread.sleep(2000);
+                        if (socket != null && socket.isConnected()
+                                && in != null && out != null) {
+
+                            String msg = in.readLine();
+                            if (msg != null)
+                                Log.d("JSON", msg);
+                            //out.write("1");
+                           // out.flush();
+
+
+
+                            Thread.sleep(500);
+
+
+                            //tcpIsConnected = true;
+                            alt = 10;
+                            heading = 203;
+                            batteryStatus = 42;
+                            angle_x = 10;
+                            angle_y = 11;
+                            angle_z = 12;
+
+
+                            if (cmd != Constants.CMD_FLY) {
+                                cmd = Constants.CMD_FLY; // ONLY SEND COMMANDS ONCE
+                                Log.d("CMD", String.valueOf(cmd));
+                            }
                         } else {
                             tcpIsConnected = false;
                             socket = new Socket(); // DO NOT REUSE SOCKET IF CONN FAILED!
-                            socket.connect(new InetSocketAddress("10.0.2.2", 21), 2000);
-                            Log.d("TCP", "trying");
+                            socket.connect(new InetSocketAddress("10.0.2.2", portNumber), 2000);
+                            try {
+                                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                                out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            Log.d("TCP", "CONNECTED");
                         }
                     } catch (SocketTimeoutException sex) { // haha, sex
                         //sex.printStackTrace();
+
                     } catch (IOException e) {
                         e.printStackTrace();
+
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
+
                 }
-                /*
-                Log.d("TCP", "connected");
-                BufferedReader in = null;
-                PrintWriter out = null;
-                try {
-                    in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                try {
-                    Log.d("READ", in.read() + "");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } */
+
+
             }
         };
         tcpThread.start();
@@ -375,50 +409,62 @@ public class MainActivity extends AppCompatActivity {
 
                 while (true) {
                     if (tcpIsConnected) {
-                        Log.d("UPD", "SENDING DATA");
+                        try {
+                            DatagramSocket s = new DatagramSocket();
+                            InetAddress local = InetAddress.getByName("192.168.1.1");
+                            // TODO IP:PORT SETTINGS
+                            byte[] message;
+                            DatagramPacket p;
+                            while (sendData) {
+                                if (useController) {
+                                    messageStr = String.valueOf(Controller.roll + "" + Controller.pitch +
+                                            Controller.yaw + Controller.throttle  + cmd);
+                                } else {
+
+                                }
+                                Log.d("SENT:", messageStr);
+                                message = messageStr.getBytes();
+                                p = new DatagramPacket(message, messageStr.length(), local, portNumber);
+                                s.send(p);
+                                Thread.sleep(delayResendCmd);
+                            }
+                        } catch (Exception ex) {
+                            Log.e("err", ex.getMessage());
+                        }
                     } else {
+                        try {
+                            Thread.sleep(2000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                         Log.d("UPD", "WAITING FOR TCP");
                     }
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                 }
-                /*
-                try {
-                    DatagramSocket s = new DatagramSocket();
-                    InetAddress local = InetAddress.getByName("10.0.2.2");
-                    // TODO IP:PORT SETTINGS
-                    byte[] message;
-                    DatagramPacket p;
-                    while (sendData) {
-                        if (useController) {
-                            messageStr = String.valueOf(Controller.roll + "" + Controller.pitch +
-                                    Controller.yaw + Controller.throttle  + cmd);
-                        } else {
-
-                        }
-                        //Log.d("SENT:", messageStr);
-                        message = messageStr.getBytes();
-                        p = new DatagramPacket(message, messageStr.length(), local, portNumber);
-                        s.send(p);
-                        Thread.sleep(delayResendCmd);
-                        if (cmd != Constants.CMD_FLY && System.currentTimeMillis() - lastCmdTimestamp > 500) {
-                            //cmd = CMD_FLY; // ONLY SEND COMMANDS ONCE
-                            //lastCmdTimestamp = System.currentTimeMillis();
-                            Log.d("PASS", String.valueOf(cmd));
-                        }
-                    }
-                } catch (Exception ex) {
-                    Log.e("err", ex.getMessage());
-                } */
             }
         };
         udp.start();
     }
 
-    private void updateWifiSignal() {
+    private void updateConnStatus(int status) {
+        conn_icon.setColor(status);
+
+        switch (status) {
+            case -1: {
+                conn.setText("DISCONNECTED");
+                break;
+            }
+            case 0: {
+                conn.setText("CONNECTING...");
+                break;
+            }
+            case 1: {
+                conn.setText("CONNECTED");
+                break;
+            }
+        }
+    }
+
+    private void updateUI() {
         Runnable runnable = new Runnable() {
             int deviceSignal = 0;
             @Override
@@ -426,25 +472,65 @@ public class MainActivity extends AppCompatActivity {
                 if (!device.isWifiOn() || !device.getWifiSSID().equals(wifiSSID)) return;
                 deviceSignal = device.getWifiSignalLevel();
                 if (deviceSignal >= 75) {
-                    wifi_icon.setColorFilter(Color.parseColor(Constants.COLOR_GREEN));
+                    wifi_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_GREEN));
                 }
                 else if (deviceSignal >= 50) {
-                    wifi_icon.setColorFilter(Color.parseColor(Constants.COLOR_ORANGE));
+                    wifi_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_YELLOW));
                 }
                 else if (deviceSignal >= 25) {
-                    wifi_icon.setColorFilter(Color.parseColor(Constants.COLOR_RED));
+                    wifi_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_ORANGE));
                 }
                 else if (deviceSignal >= 0) {
-                    wifi_icon.setColorFilter(Color.parseColor(Constants.COLOR_RED));
+                    wifi_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_RED));
                     vibrate();
                     speak(getString(R.string.WIFI_SIGNAL_LOW));
                 }
 
-                wifi.setText(device.getWifiSignalLevel());
+                wifi.setText(device.getWifiSignalLevel() + "%");
+
+                updateAltitude(alt);
+                updateCompas(heading);
+                updateBatteryStatus(batteryStatus);
+                updateAngles(angle_x, angle_y, angle_z);
+
                 handler.postDelayed(this, 500);
             }
         };
         runnable.run();
+    }
+
+    private void updateBatteryStatus(int percent) {
+
+        battery.setText(percent + "%");
+
+        if (percent >= 75) {
+            battery_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_GREEN));
+        } else if (percent >= 50) {
+            battery_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_YELLOW));
+        } else if (percent >= 25) {
+            battery_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_ORANGE));
+        } else if (percent >= 0) {
+            battery_icon.setColorFilter(getApplicationContext().getResources().getColor(R.color.FLAT_RED));
+            vibrate();
+            speak(getString(R.string.WARNING_BATTERY_LOW));
+        }
+    }
+
+    private void updateCompas(int heading) {
+        compas.setText(heading + "º");
+        compas_icon.setRotation(heading);
+    }
+
+    private void updateAltitude(float alt) {
+        if (true) {// TODO use meters vs feet
+            altitude.setText(String.format("%.1f", alt));
+        }
+    }
+
+    private void updateAngles(int x, int y, int z){
+        angX.setText("X : " + x);
+        angY.setText("Y : " + y);
+        angZ.setText("Z : " + z);
     }
 
     private void handleJoysticks() {
@@ -567,7 +653,7 @@ public class MainActivity extends AppCompatActivity {
                 && device.isWifiOn() && device.getWifiSSID().equals(wifiSSID)) {
 
             webView.setVisibility(View.VISIBLE);
-            webView.loadUrl("http://192.168.1.1:9090/stream"); // /stream/webrtc
+            //webView.loadUrl("http://192.168.1.1:9090/stream"); // /stream/webrtc
             webView.getSettings().setJavaScriptEnabled(true);
             webView.setWebViewClient(new WebViewClient() {
                 @Override
