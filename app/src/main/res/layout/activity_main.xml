@@ -191,7 +191,7 @@
                 android:textSize="20pt"
                 android:height="20dp"
                 android:tint="#ffffff"
-                android:src="@drawable/abc_ic_menu_moreoverflow_mtrl_alpha"
+                android:src="@drawable/abc_ic_menu_overflow_material"
                 android:layout_weight="0"
                 android:layout_centerVertical="true" />
 
